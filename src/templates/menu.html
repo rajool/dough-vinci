@@ -1,0 +1,32 @@
+<div class="pigment pigment--top" aria-hidden="true"></div>
+<section class="menu page" aria-labelledby="menu-title">
+  <span class="folio-mark" aria-hidden="true">f. 5r</span>
+  <header class="sec-head menu__head">
+    <p class="kicker-s">Codex Menu</p>
+    <h1 id="menu-title" class="sec-title">Pick your <em>masterpiece</em></h1>
+    <p class="menu__lead">{{count}} dishes. Tap one for ingredients, nutrition and allergens.</p>
+  </header>
+  <nav class="tabs" aria-label="Menu sections" data-tabs>
+    <div class="tabs__in scroller" data-scroller><ul class="tabs__list">{{tabs}}</ul></div>
+  </nav>
+  {{warn}}
+  <p class="filters__nojs">Every card lists its allergens, and the <a href="{{root}}allergens/">allergen chart</a> compares them all.</p>
+  <div class="filters">
+    <div class="filters__row" role="group" aria-labelledby="flt-show">
+      <span class="filters__lbl" id="flt-show">Show only</span>
+      <div class="filters__scroll scroller" data-scroller>{{diet_filters}}</div>
+    </div>
+    <div class="filters__row" role="group" aria-labelledby="flt-avoid">
+      <span class="filters__lbl" id="flt-avoid">Avoid</span>
+      <div class="filters__scroll scroller" data-scroller>{{avoid_filters}}</div>
+    </div>
+    <div class="filters__foot">
+      <p class="filters__status" aria-live="polite" data-filter-status></p>
+      <button class="chip chip--clear" type="button" data-clear hidden><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-close"></use></svg><span>Clear filters</span></button>
+    </div>
+  </div>
+  {{sections}}
+  <p class="menu__xc">One shared kitchen: traces of any allergen are possible. <a href="{{root}}allergens/">Allergens &amp; nutrition</a></p>
+  <p class="menu__note">{{note}}</p>
+</section>
+{{combos}}

@@ -1,0 +1,22 @@
+{
+  "name": "Dough-Vinci Pizza & Burger",
+  "short_name": "Dough-Vinci",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#FFF8EC",
+  "theme_color": "#FFF8EC",
+  "description": "Dough-Vinci Pizza & Burger: freshly rolled pizzas and juicy smashburgers with crispy edges and melted cheese. Real Pizza. Real Smashburgers. Made with Passion.",
+  "icons": [
+    {
+      "src": "apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

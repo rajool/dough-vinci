@@ -1,0 +1,70 @@
+/* Classes the drawings in src/art/new/ expect. Colours only here; the SVGs carry none.
+   Values follow the Codex Vivo palette (paper #FFF8EC). Merge into the site stylesheet or link as is. */
+:root {
+  --dv-ink: #2B1D14; --dv-ink-line: #4A2D1A; --dv-sepia: #6E4529; --dv-hatch: #8C5A2B;
+  --dv-sanguine: #B8432A; --dv-tomato: #D63A22; --dv-basil: #2F7A3A; --dv-basil-hi: #74AC3E;
+  --dv-cheese: #F7B32B; --dv-cheese-soft: #FFE3A1; --dv-sky: #3F6F88; --dv-sky-soft: #CFE2EA;
+  --dv-rose: #F6C7B4; --dv-paper: #FFF8EC; --dv-paper-2: #FCEFD8;
+}
+
+/* line work shared by map, flying machine and gears */
+.codex-art .art-construction { stroke: var(--dv-sanguine); stroke-width: 1.3; opacity: .55; stroke-linecap: round; }
+.codex-art .art-line { stroke: var(--dv-ink-line); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.codex-art .art-fine { stroke: var(--dv-ink-line); stroke-width: 1.4; stroke-linecap: round; opacity: .85; }
+.codex-art .art-fine--lot, .codex-art .art-fine--tick { stroke: var(--dv-sepia); stroke-width: 1.1; opacity: .7; }
+.codex-art .art-fine--path { stroke: var(--dv-sepia); stroke-dasharray: none; opacity: .7; }
+.codex-art .art-fine--dash { stroke: var(--dv-sepia); stroke-width: 1.6; opacity: .6; }
+.codex-art .art-hatch { stroke: var(--dv-hatch); stroke-width: 1.1; opacity: .5; stroke-linecap: round; }
+.codex-art .art-dim { stroke: var(--dv-sanguine); stroke-width: 1.6; stroke-linecap: round; }
+.codex-art .art-dot { fill: var(--dv-tomato); stroke: var(--dv-paper-2); stroke-width: 3; }
+.codex-art .art-rope { stroke: var(--dv-sepia); stroke-width: 1.6; stroke-linecap: round; }
+.codex-art .wash { opacity: .92; }
+
+/* map washes */
+.wash-block { fill: var(--dv-rose); }
+.wash-main { fill: var(--dv-cheese-soft); }
+.wash-park { fill: #BFD99A; }
+.wash-tree { fill: var(--dv-basil-hi); }
+.wash-shop { fill: var(--dv-cheese); }
+.wash-pin { fill: var(--dv-tomato); }
+.wash-compass { fill: var(--dv-cheese); }
+.wash-compass-n { fill: var(--dv-tomato); }
+
+/* flying machine washes */
+.wash-wing { fill: var(--dv-cheese-soft); }
+.wash-wing-shade { fill: var(--dv-rose); }
+.wash-spar { fill: #E1A04E; }
+.wash-hull { fill: #E1A04E; }
+.wash-hull-dark { fill: #A9662A; }
+.wash-box { fill: #F0CF96; }
+.wash-box-side { fill: #D9A35C; }
+.wash-box-lid { fill: #F8E3B8; }
+.wash-sauce { fill: #D9452A; }
+.wash-cheese { fill: #F7C452; }
+.wash-basil { fill: var(--dv-basil-hi); }
+.wash-sky { fill: var(--dv-sky-soft); }
+
+/* gears */
+.wash-wood { fill: #F2D49B; }
+.wash-wood-dark { fill: #D9A35C; }
+.wash-weight { fill: var(--dv-sky-soft); }
+
+/* Vitruvian mark: dv-mark root; bold strokes so it holds at 40 px */
+.dv-mark .mark-geo { stroke: var(--dv-sanguine); }
+.dv-mark .mark-ink { stroke: var(--dv-ink-line); }
+.dv-mark .mark-tick { stroke: var(--dv-sanguine); opacity: .8; }
+.dv-mark .mark-crust { fill: #E9A54E; }
+.dv-mark .mark-sauce { fill: var(--dv-tomato); }
+.dv-mark .mark-cheese { fill: var(--dv-cheese); }
+.dv-mark .mark-pepperoni { fill: #B5301C; }
+.dv-mark .mark-basil { fill: var(--dv-basil); }
+.dv-mark.dv-mark--mono .mark-geo, .dv-mark.dv-mark--mono .mark-ink { stroke: currentColor; }
+.dv-mark.dv-mark--mono .mark-crust, .dv-mark.dv-mark--mono .mark-sauce, .dv-mark.dv-mark--mono .mark-cheese, .dv-mark.dv-mark--mono .mark-basil { fill: none; }
+.dv-mark.dv-mark--mono .mark-pepperoni { fill: currentColor; }
+.dv-mark--small .mark-detail { display: none; }
+
+/* motion hooks (the page decides when) */
+.codex-art--gears .gear { transform-box: view-box; }
+@media (prefers-reduced-motion: reduce) {
+  .codex-art .gear, .codex-art .fm-wing, .codex-art .fm-box, .codex-art .map-pin { animation: none !important; transition: none !important; }
+}

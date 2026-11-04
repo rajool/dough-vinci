@@ -1,0 +1,49 @@
+{
+  "viewBox": [
+    0,
+    0,
+    600,
+    300
+  ],
+  "gears": {
+    "a": {
+      "centre": [
+        165.0,
+        152.0
+      ],
+      "teeth": 20,
+      "pitchRadius": 100.0,
+      "ratio": 1.0
+    },
+    "b": {
+      "centre": [
+        306.3,
+        76.9
+      ],
+      "teeth": 12,
+      "pitchRadius": 60.0,
+      "ratio": -1.6667
+    },
+    "c": {
+      "centre": [
+        288.0,
+        228.8
+      ],
+      "teeth": 9,
+      "pitchRadius": 45.0,
+      "ratio": -2.2222
+    }
+  },
+  "pulley": {
+    "centre": [
+      488.0,
+      82.0
+    ],
+    "radius": 40.0,
+    "ratio": -0.6275
+  },
+  "weight": [
+    530,
+    240
+  ]
+}

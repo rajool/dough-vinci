@@ -1,0 +1,53 @@
+# Dough-Vinci Pizza & Burger
+
+> Real Pizza. Real Smashburgers. Made with Passion. A pizza and smashburger restaurant on Commercial Drive, Vancouver.
+
+This site is a preview: the menu, prices, calories, allergens, location, phone, hours and opening date are samples, and the photos are stock images.
+
+Opening date: 2026-12-05.
+
+- Location: Commercial Drive at Kitchener Street, Vancouver, BC (Grandview–Woodland)
+- Phone: (604) 555-0142
+- Hours: Mon–Thu 11 am–10 pm; Fri–Sat 11 am–11 pm; Sun 12 pm–9 pm
+- Ordering: [Uber Eats](https://www.ubereats.com/ca), [DoorDash](https://www.doordash.com/en-CA), [SkipTheDishes](https://www.skipthedishes.com), [Fantuan](https://www.fantuanorder.com); or call for pickup.
+
+## Pages
+
+- [Menu](https://rajool.github.io/dough-vinci/menu/): every dish with price, calories, ingredients and allergens
+- [Allergens & nutrition](https://rajool.github.io/dough-vinci/allergens/): the allergen matrix
+- [Visit](https://rajool.github.io/dough-vinci/visit/): hours, map, FAQ, catering
+- [About](https://rajool.github.io/dough-vinci/about/): the idea and photo credits
+
+## Menu
+
+### Pizza
+- Mona Lisa: The classic that always smiles: tomato, mozzarella, basil. 12 in $18, 16 in $26. 1,600 kcal (12-inch pizza, whole (6 slices)). Contains: Wheat, Milk.
+- The Vitruvian: Perfect proportions: pepperoni, mushrooms, green pepper, red onion. 12 in $22, 16 in $31. 1,840 kcal (12-inch pizza, whole (6 slices)). Contains: Wheat, Milk.
+- Pepperoni Codex: Double pepperoni, cupped and charred at every edge. 12 in $21, 16 in $30. 2,100 kcal (12-inch pizza, whole (6 slices)). Contains: Wheat, Milk.
+- Sfumato BBQ: Smoky BBQ chicken, red onion, a soft haze of cilantro. 12 in $23, 16 in $32. 1,900 kcal (12-inch pizza, whole (6 slices)). Contains: Wheat, Milk, Mustard, Sulphites.
+- Il Giardino: A whole garden: mushrooms, peppers, olives, tomatoes, spinach. 12 in $21, 16 in $29. 1,640 kcal (12-inch pizza, whole (6 slices)). Contains: Wheat, Milk.
+- Flying Machine: Spicy salami, jalapeño and hot honey. It takes off. 12 in $23, 16 in $32. 1,980 kcal (12-inch pizza, whole (6 slices)). Contains: Wheat, Milk.
+- Gioconda Bianca: No tomato, all mystery: ricotta, mozzarella, garlic, spinach. 12 in $22, 16 in $31. 1,860 kcal (12-inch pizza, whole (6 slices)). Contains: Wheat, Milk.
+
+### Smashburgers
+- The Original Smash: One smashed patty, American cheese, pickles, house sauce. $12. 560 kcal (1 burger, without sides). Contains: Wheat, Milk, Egg, Soy, Mustard.
+- Double Smash: Two patties, double cheese, crispy lacy edges. The signature. $16. 860 kcal (1 burger, without sides). Contains: Wheat, Milk, Egg, Soy, Mustard.
+- The Inventor: Double smash, caramelized onion, aged cheddar, garlic aioli. $18. 940 kcal (1 burger, without sides). Contains: Wheat, Milk, Egg, Soy, Mustard.
+- Codex Inferno: Double smash, pepper jack, jalapeño, chipotle mayo. Hot. $18. 910 kcal (1 burger, without sides). Contains: Wheat, Milk, Egg, Soy, Mustard.
+- Il Verde: A crispy vegetable patty with cheddar, lettuce and tomato. $15. 640 kcal (1 burger, without sides). Contains: Wheat, Milk, Egg, Soy, Mustard.
+
+### Sides
+- Golden Ratio Fries: Skin-on, crisp, sea-salted. Perfectly proportioned. $6. 420 kcal (regular portion (about 170 g)). Contains: none of the priority allergens.
+- Garlic Knots: Six knots, garlic butter, parmesan, marinara for dipping. $8. 560 kcal (6 knots with marinara). Contains: Wheat, Milk.
+- Orbit Onion Rings: Thick-cut, light batter, golden all the way round. $8. 480 kcal (regular portion (about 8 rings)). Contains: Wheat.
+- Mozzarella Sticks: Six golden sticks, stretchy middles, marinara on the side. $10. 620 kcal (6 sticks with marinara). Contains: Wheat, Milk, Egg.
+- Codex Caesar: Crisp romaine, parmesan, garlic croutons, classic Caesar dressing. $11. 380 kcal (full salad). Contains: Wheat, Milk, Egg, Fish, Mustard.
+
+### Desserts
+- Tiramisù: Espresso-soaked ladyfingers, mascarpone cream, cocoa. $8. 450 kcal (1 slice). Contains: Wheat, Milk, Egg.
+- Cannoli: Crisp shells, sweet ricotta, chocolate chips, crushed pistachio. $7. 520 kcal (2 cannoli). Contains: Wheat, Milk, Egg, Soy, Tree nuts.
+
+### Drinks
+- Italian Soda: Sparkling water, blood orange or raspberry syrup, lots of ice. 16 oz $5. 180 kcal (16 oz). Contains: none of the priority allergens.
+- House Lemonade: Fresh lemons, cane sugar, a sprig of mint. 16 oz $5. 200 kcal (16 oz). Contains: none of the priority allergens.
+- Fountain Pop: Cola, diet cola, lemon-lime or root beer. 16 oz $3. 190 kcal (16 oz regular cola (diet: 0 kcal)). Contains: none of the priority allergens.

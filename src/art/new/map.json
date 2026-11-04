@@ -1,0 +1,81 @@
+{
+  "viewBox": [
+    0,
+    0,
+    1000,
+    1000
+  ],
+  "pin": [
+    500,
+    500
+  ],
+  "pinHead": [
+    500,
+    444
+  ],
+  "labels": {
+    "Commercial Dr": [
+      530,
+      760
+    ],
+    "Charles St": [
+      370,
+      260
+    ],
+    "Kitchener St": [
+      370,
+      440
+    ],
+    "Grant St": [
+      370,
+      620
+    ],
+    "Grandview Park": [
+      690,
+      190
+    ]
+  },
+  "rotate": {
+    "Commercial Dr": -90
+  },
+  "winds": {
+    "Tramontana": [
+      500,
+      26
+    ],
+    "Greco": [
+      862,
+      138
+    ],
+    "Levante": [
+      974,
+      452
+    ],
+    "Scirocco": [
+      862,
+      862
+    ],
+    "Ostro": [
+      500,
+      974
+    ],
+    "Libeccio": [
+      138,
+      862
+    ],
+    "Ponente": [
+      26,
+      452
+    ],
+    "Maestro": [
+      138,
+      138
+    ]
+  },
+  "centre": [
+    500,
+    500
+  ],
+  "radius": 400,
+  "note": "Not to scale. Street order checked against address ranges on Commercial Drive (Charles, Kitchener and Grant run south in that order; Grandview Park is at Commercial and Charles). The pin is a placeholder position for 1428 Commercial Drive, between Kitchener St and Grant St."
+}

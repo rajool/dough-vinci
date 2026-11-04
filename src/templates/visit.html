@@ -1,0 +1,36 @@
+<section class="visit page" aria-labelledby="visit-title">
+  <span class="folio-mark" aria-hidden="true">f. 7r</span>
+  <div class="visit__in">
+    <div class="visit__info">
+      <p class="kicker-s">The bottega</p>
+      <h1 id="visit-title" class="sec-title">Come <em>by</em></h1>
+      <p class="addr"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-pin"></use></svg><span>{{address}}<span class="addr__x">{{cross}}</span></span></p>
+      <p class="visit__status">{{status_long}}</p>
+      <table class="hours"><caption class="sr">Opening hours</caption><tbody>{{hours}}</tbody></table>
+      <div class="cta-row">
+        <a class="btn btn--ink" href="{{maps}}" target="_blank" rel="noopener"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-arrow"></use></svg>Directions<span class="sr"> (opens Google Maps in a new tab)</span></a>
+        <a class="btn btn--ghost" href="tel:{{tel}}"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-phone"></use></svg>{{phone}}</a>
+      </div>
+    </div>
+    {{map}}
+  </div>
+</section>
+<div class="pigment" aria-hidden="true"></div>
+<section class="faq page" aria-labelledby="faq-title">
+  <header class="sec-head"><p class="kicker-s">Good to know</p><h2 id="faq-title" class="sec-title">Questions</h2></header>
+  <div class="faq__list">{{faq}}</div>
+</section>
+<section class="cater page" aria-labelledby="cater-title">
+  <div class="cater__in">
+    <div class="cater__art" aria-hidden="true"><img src="{{root}}assets/art/gears.svg" alt="" width="600" height="300" loading="lazy" decoding="async"></div>
+    <div class="cater__txt">
+      <p class="kicker-s">Catering</p>
+      <h2 id="cater-title" class="sec-title">{{catering_title}}</h2>
+      <p class="cater__p">{{catering_text}}</p>
+      <div class="cta-row">
+        <a class="btn btn--order" href="tel:{{tel}}"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-phone"></use></svg>Call {{phone}}</a>
+        <a class="btn btn--ghost" href="mailto:{{email}}"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-mail"></use></svg>Email us</a>
+      </div>
+    </div>
+  </div>
+</section>
