@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 """Render the share image and the icons in the Nero style:
 
-    src/img/og.png               1200x630  the share image (headline, halal mark, the pizza and the smashburger)
+    src/img/og.png               1200x630  the share image (headline, halal mark, the city, the pizza and the smashburger)
     src/img/apple-touch-icon.png  180x180  the home-screen icon (the wordmark stacked over the tricolour)
     src/img/favicon.png            64x64   the browser-tab icon (DV over the tricolour)
 
@@ -33,6 +33,9 @@ body{overflow:hidden;background:#121010;color:#f5ebda;font-family:Archivo,sans-s
 .tri{display:flex}.tri i{flex:1}.tri i:nth-child(1){background:#2f8a45}.tri i:nth-child(2){background:#f5ebda}.tri i:nth-child(3){background:#c8261b}"""
 
 
+PLACE = f'{build.SITE["contact"]["city"]}, {build.SITE["contact"]["region"]}'
+
+
 def og_html() -> str:
     pizza = build.img_url(build.PHOTOS["hero-pizza"], 600, 2 / 3)
     burger = build.img_url(build.PHOTOS["hero-burger"], 600, 2 / 3)
@@ -45,6 +48,7 @@ h1{{margin-top:58px;font-size:66px}} h1 span{{display:block}}
 .rule{{width:132px;height:8px;background:#c8261b;margin-top:22px}}
 .it{{margin-top:18px;font:italic 400 44px/1 "Instrument Serif",serif}}
 .tag{{position:absolute;left:60px;bottom:50px;display:flex;align-items:center;gap:14px;font-weight:600;font-size:21px}}
+.dot{{color:#c8261b;font-weight:800}}
 .disc{{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;background:#286e37;color:#f5ebda;
   box-shadow:inset 0 0 0 3.4px #286e37,inset 0 0 0 5.6px #f5ebda;font:700 14px/1 "Noto Kufi Arabic",sans-serif}}
 .food{{position:absolute;right:0;top:0;width:560px;height:620px;display:grid;grid-template-columns:1fr 1fr;gap:3px}}
@@ -54,11 +58,11 @@ h1{{margin-top:58px;font-size:66px}} h1 span{{display:block}}
 <div class="copy">
   <p class="wm d">Dough-Vinci</p>
   <p class="sub">Pizza &amp; Burger <span class="tri"><i></i><i></i><i></i></span></p>
-  <h1 class="d"><span>Real Pizza.</span><span>Real Smashburgers.</span></h1>
+  <h1 class="d">{"".join(f"<span>{build.e(x)}</span>" for x in build.SITE["hero"]["title_lines"])}</h1>
   <div class="rule"></div>
   <p class="it">{build.e(build.SITE["hero"]["sub"])}</p>
 </div>
-<p class="tag"><span class="disc" lang="ar" dir="rtl">{build.e(build.SITE["halal"]["mark_ar"])}</span>{build.e(build.SITE["halal"]["mark_en"])}</p>
+<p class="tag"><span class="disc" lang="ar" dir="rtl">{build.e(build.SITE["halal"]["mark_ar"])}</span>{build.e(build.SITE["halal"]["mark_en"])}<span class="dot">·</span>{build.e(PLACE)}</p>
 <div class="food"><img src="{build.e(pizza)}" alt=""><img src="{build.e(burger)}" alt=""></div>
 <div class="foot tri"><i></i><i></i><i></i></div>
 </body></html>"""

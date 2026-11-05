@@ -1,15 +1,28 @@
 {
   "name": "Dough-Vinci",
   "subtitle": "Pizza & Burger",
-  "opening_date": "2026-12-05",
+  "opening_date": "2026-12-01",
+  "opening_approx": true,
   "preview": true,
+  "confirmed": {
+    "location": true,
+    "hours": true,
+    "email": true,
+    "halal": true,
+    "dine_in": true,
+    "parking": true,
+    "opening_date": false,
+    "phone": false,
+    "delivery": false,
+    "photos": false
+  },
   "index": false,
   "base_url": "https://rajool.github.io/dough-vinci/",
   "base_path": "/dough-vinci/",
   "lang": "en",
-  "title": "Dough-Vinci Pizza & Burger — Real Pizza. Real Smashburgers.",
-  "description": "Dough-Vinci Pizza & Burger: freshly rolled pizzas and juicy smashburgers with crispy edges and melted cheese, all halal. Real Pizza. Real Smashburgers. Made with Passion.",
-  "tagline": "Real Pizza. Real Smashburgers. Made with Passion.",
+  "title": "Dough-Vinci Pizza & Burger — Real Pizza. Real Smash Burger.",
+  "description": "Dough-Vinci Pizza & Burger in Richmond, BC: freshly rolled pizzas, juicy smashburgers with crispy edges and melted cheese, and pasta. All our meat is halal. Eat in, pick up or order delivery.",
+  "tagline": "Real Pizza. Real Smash Burger. Made with Passion.",
   "strap": "Great Food. Great Taste. Every Bite.",
   "pillars": [
     "Fresh Ingredients",
@@ -24,21 +37,24 @@
   "halal": {
     "mark_ar": "حلال",
     "mark_en": "Halal",
-    "statement": "All our meat is halal. No pork, no alcohol.",
-    "certifier": null,
+    "statement": "All our meat is halal.",
+    "certifier": "the BC Muslim Association (BCMA)",
     "certifier_logo": null,
-    "detail": "Our pepperoni, salami, sausage and bresaola are beef, and our tiramisù is made without liqueur."
+    "detail": "Our pepperoni, salami, sausage and bresaola are beef."
   },
   "contact": {
     "phone": "(604) 555-0142",
-    "email": "hello@doughvinci.ca",
-    "street": "Commercial Drive",
-    "address": "Commercial Drive at Kitchener Street, Vancouver, BC",
-    "map_label": "Commercial & Kitchener",
-    "city": "Vancouver",
+    "email": "info@dough-vinci.com",
+    "street_address": "12420 No. 1 Road",
+    "postal_code": "V7E 6N2",
+    "city": "Richmond",
     "region": "BC",
-    "maps_url": "https://www.google.com/maps/search/?api=1&query=Commercial+Drive+and+Kitchener+Street%2C+Vancouver%2C+BC",
-    "neighbourhood": "Grandview–Woodland"
+    "address": "12420 No. 1 Road, Richmond, BC V7E 6N2",
+    "map_label": "12420 No. 1 Road",
+    "locality": "Richmond, BC V7E 6N2",
+    "maps_url": "https://www.google.com/maps/search/?api=1&query=12420+No.+1+Road%2C+Richmond%2C+BC+V7E+6N2",
+    "parking": "Free customer parking inside the building, on the ground floor.",
+    "dine_in": "Eat in with us, pick up or order delivery."
   },
   "hours": [
     {
@@ -46,25 +62,19 @@
         "mon",
         "tue",
         "wed",
-        "thu"
+        "thu",
+        "fri",
+        "sat"
       ],
       "open": "11:00",
       "close": "22:00"
     },
     {
       "days": [
-        "fri",
-        "sat"
-      ],
-      "open": "11:00",
-      "close": "23:00"
-    },
-    {
-      "days": [
         "sun"
       ],
       "open": "12:00",
-      "close": "21:00"
+      "close": "20:00"
     }
   ],
   "timezone": "America/Vancouver",
@@ -89,7 +99,7 @@
   "hero": {
     "title_lines": [
       "Real Pizza.",
-      "Real Smashburgers."
+      "Real Smash Burger."
     ],
     "sub": "Made with Passion.",
     "buttons": {
@@ -103,16 +113,24 @@
       "a": "Find us on Uber Eats, DoorDash, SkipTheDishes or Fantuan. We don’t take payment on this site."
     },
     {
+      "q": "Can I eat in?",
+      "a": "Yes. We have seating, so you can eat in with us, pick up your order or have it delivered."
+    },
+    {
       "q": "Can I pick up my order?",
       "a": "Yes. Choose pickup in any of the delivery apps, or call us and collect it at the counter."
     },
     {
+      "q": "Is there parking?",
+      "a": "Yes. Free customer parking inside the building, on the ground floor."
+    },
+    {
       "q": "Is your food halal?",
-      "a": "Yes. All our meat is halal, and we use no pork and no alcohol. Our pepperoni, salami, sausage and bresaola are beef, and our tiramisù is made without liqueur."
+      "a": "Yes. All our meat is halal, with halal certification by the BC Muslim Association (BCMA). Our pepperoni, salami, sausage and bresaola are beef."
     },
     {
       "q": "Do you have vegetarian options?",
-      "a": "Yes: the Mona Lisa and Mushroom & Balsamic pizzas, the Veggie Burger, most sides and both desserts."
+      "a": "Yes: the Mona Lisa and Mushroom & Balsamic pizzas, the Veggie Burger, three of our four pastas, most sides and both desserts."
     },
     {
       "q": "How do I check allergens?",
@@ -124,14 +142,14 @@
     },
     {
       "q": "When do you open?",
-      "a": "We plan to open on {opening}. The date is confirmed here and on the delivery apps before the first order."
+      "a": "We plan to open {opening}. The exact day goes up here and on the delivery apps before the first order."
     }
   ],
   "catering": {
     "title": "Feeding a crowd?",
     "text": "Pizzas by the stack, smashburgers by the tray. Tell us the date and headcount, and we’ll plan the order for your office, party or team."
   },
-  "order_note": "Pickup or delivery: your app, your call.",
+  "order_note": "Eat in, pick up or get it delivered: your call.",
   "signatures": [
     "vitruvian",
     "mushroom-balsamic",

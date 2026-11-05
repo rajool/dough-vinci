@@ -1,13 +1,25 @@
 # Dough-Vinci Pizza & Burger
 
-> Real Pizza. Real Smashburgers. Made with Passion. A pizza and smashburger restaurant coming to Vancouver.
+> Real Pizza. Real Smash Burger. Made with Passion. A halal pizza, smashburger and pasta restaurant coming to Richmond, BC.
 
-This site is a preview. The menu, prices, calories, allergens, halal details, location, phone, hours and opening date shown on it are samples until the restaurant confirms them, and the photos are stock images. Do not quote them as facts.
+This site is a preview. The menu, prices, calories and allergens, the phone number, the exact opening day, the delivery-app links and the food photos (stock images) shown on it are samples until the restaurant confirms them. Do not quote them as facts.
+
+Opening: planned for early December 2026; the exact day is not set yet.
+
+- Location: 12420 No. 1 Road, Richmond, BC V7E 6N2
+- Parking: Free customer parking inside the building, on the ground floor.
+- Hours (Pacific time): Mon–Sat 11 am–10 pm; Sun 12 pm–8 pm
+- Email: info@dough-vinci.com
+- Halal: All our meat is halal. Halal certification by the BC Muslim Association (BCMA).
+- Service: eat in (the restaurant has seating), pickup and delivery.
+- Ordering: Uber Eats, DoorDash, SkipTheDishes, Fantuan. No payment on this site.
 
 ## Pages
 
 - [Menu](https://rajool.github.io/dough-vinci/menu/): every dish with price, calories, ingredients and allergens
 - [About Us](https://rajool.github.io/dough-vinci/about/): the owner's welcome and the idea behind the name
-- [Contact](https://rajool.github.io/dough-vinci/contact/): location, hours, phone, halal statement, FAQ
+- [Contact](https://rajool.github.io/dough-vinci/contact/): location, parking, hours, phone, halal statement, FAQ
 - [Allergens & nutrition](https://rajool.github.io/dough-vinci/allergens/): every dish by allergen with calories
 - [Photo credits](https://rajool.github.io/dough-vinci/credits/): the stock photos and the drawing, with their sources
+
+The menu has three kinds of food: pizza, smashburgers and pasta, with sides, desserts and drinks. Its dishes are samples until the restaurant confirms them.
