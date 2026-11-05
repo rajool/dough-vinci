@@ -1,158 +1,50 @@
-<section class="hero" aria-labelledby="hero-title">
-  <span class="folio-mark" aria-hidden="true">f. 1r</span>
-  <div class="hero__in">
-    <div class="hero__copy">
-      <p class="hero__kicker">{{status_long}}</p>
-      <h1 id="hero-title" class="hero__title">
-        <span class="hl"><span class="hl__real hand">Real</span> <span class="hl__big">{{title_1}}</span></span>
-        <span class="hl"><span class="hl__real hand">Real</span> <span class="hl__big hl__big--smash">{{title_2}}</span></span>
-        <span class="hl hl--passion hand">{{sub}}<svg class="swash" viewBox="0 0 420 40" aria-hidden="true" focusable="false"><path pathLength="1" d="M6 26C70 12 160 8 250 14s130 14 164 6"/><path pathLength="1" d="M30 32c90-8 200-10 300-2"/></svg></span>
-      </h1>
-      <div class="hero__cta">
-        <a class="btn btn--order btn--lg" href="#order" data-order><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-bag"></use></svg><span>Order</span></a>
-        <a class="btn btn--ghost btn--lg" href="{{root}}menu/">See the menu</a>
-      </div>
-      <ul class="pillars" aria-label="What we do">{{pillars}}</ul>
-    </div>
-
-    <div class="hero__stage">
-      <svg class="construct" viewBox="0 0 600 600" aria-hidden="true" focusable="false">
-        <g class="c-guides">
-          <path pathLength="1" style="--i:0" d="M300 52a248 248 0 1 1-.1 0z"/>
-          <path pathLength="1" style="--i:1" d="M302 49a251 251 0 1 1-.1 0z" class="faint"/>
-          <path pathLength="1" style="--i:2" d="M86 96h428v428H86z"/>
-          <path pathLength="1" style="--i:3" d="M300 18v564M18 300h564"/>
-          <path pathLength="1" style="--i:4" d="M86 96l428 428M514 96 86 524" class="faint"/>
-          <path pathLength="1" style="--i:5" d="M120 300a180 180 0 0 1 180-180" class="faint"/>
-        </g>
-        <path pathLength="1" style="--i:6" class="c-ticks" d="M300 40v16M300 544v16M40 300h16M544 300h16M484 116l-11 11M116 484l11-11M484 484l-11-11M116 116l11 11M400 60l-5 14M200 540l5-14M60 400l14-5M540 200l-14 5M200 60l5 14M400 540l-5-14M60 200l14 5M540 400l-14-5"/>
-        <g class="c-leaders">
-          <path pathLength="1" style="--i:7" d="M520 70c-30 6-58 26-72 62"/>
-          <path pathLength="1" style="--i:8" d="M64 196c34 0 70 18 96 50"/>
-          <path pathLength="1" style="--i:9" d="M548 420c-28 10-60 4-96-22"/>
-          <circle cx="447" cy="136" r="5" class="dot"/><circle cx="162" cy="250" r="5" class="dot"/><circle cx="450" cy="396" r="5" class="dot"/>
-        </g>
-        <path pathLength="1" style="--i:10" class="c-dim" d="M88 578h424M88 568v20M512 568v20M88 578l14-6M88 578l14 6M512 578l-14-6M512 578l-14 6"/>
-      </svg>
-      <figure class="hero-pizza">
-        <div class="hero-pizza__clip">{{hero_pizza}}</div>
-        <figcaption class="fig-tag fig-tag--pizza">Fig. 1 · <span lang="it">L’Arte</span></figcaption>
-      </figure>
-      <ul class="hero-notes" aria-hidden="true">
-        <li class="hn hn--1 hand">leopard-spotted crust</li>
-        <li class="hn hn--2 hand">fresh basil</li>
-        <li class="hn hn--3 hand">tomato &amp;<br>mozzarella</li>
-        <li class="hn hn--dim hand">Ø 12 in. · six slices</li>
-      </ul>
-      <p class="mirror hn--mirror" aria-hidden="true"><span class="mirror__in hand" lang="it">la pizza è l’arte</span></p>
-      <figure class="hero-burger">
-        <figcaption class="fig-tag">Fig. 2 · <span lang="it">L’Ingegneria</span></figcaption>
-        <div class="hero-burger__frame"><span class="tick tick--tl"></span><span class="tick tick--br"></span>{{hero_burger}}</div>
-        <span class="ruler" aria-hidden="true"></span>
-        <span class="lace hand" aria-hidden="true">lace edge</span>
-      </figure>
-      <svg class="seal" viewBox="0 0 200 200" aria-hidden="true" focusable="false">
-        <defs><path id="seal-path" d="M100 100m-74 0a74 74 0 1 1 148 0a74 74 0 1 1-148 0"/></defs>
-        <circle cx="100" cy="100" r="94" class="seal__bg"/>
-        <text><textPath href="#seal-path" textLength="458" lengthAdjust="spacing">PIZZA ✦ SMASHBURGERS ✦ VANCOUVER ✦ </textPath></text>
-        <g class="seal__core"><circle cx="100" cy="100" r="40"/><path d="M100 64v72M64 100h72M74 74l52 52M126 74l-52 52"/></g>
-      </svg>
-    </div>
+<section class="hero" aria-labelledby="hero-title" data-hero>
+  <div class="hero__copy">
+    <p class="tag">{{tag}}</p>
+    <h1 class="hero__h d" id="hero-title"><span>{{title_1}}</span> <span>{{title_2}}</span></h1>
+    <span class="hero__rule" aria-hidden="true"></span>
+    <p class="hero__sub it">{{sub}}</p>
+    <p class="hero__line">{{line}}</p>
+    <p class="hero__cta">
+      <a class="btn btn--red btn--big" href="#order" data-order>{{scooter}}<span>{{btn_order}}</span></a>
+      <a class="btn btn--line btn--big" href="{{root}}menu/"><span>{{btn_menu}}</span></a>
+    </p>
   </div>
+  <ul class="hero__food">
+    <li><a href="{{root}}menu/#pizza"><span class="ph">{{hero_pizza}}</span><span class="hero__lab"><span class="d">Pizza</span><span class="hero__from">from {{pizza_from}}</span></span><span class="sr">: {{pizza_alt}}</span></a></li>
+    <li><a href="{{root}}menu/#smash"><span class="ph">{{hero_burger}}</span><span class="hero__lab"><span class="d">Smashburgers</span><span class="hero__from">from {{smash_from}}</span></span><span class="sr">: {{burger_alt}}</span></a></li>
+  </ul>
+  {{tri}}
 </section>
 
-<div class="ribbons">
-  <div class="ribbon ribbon--cheese" aria-hidden="true"><div class="ribbon__track"><span>Fresh Ingredients ✦ Flat-Rolled Pizza ✦ Signature Smashburgers ✦ Fresh Ingredients ✦ Flat-Rolled Pizza ✦ Signature Smashburgers ✦ </span><span>Fresh Ingredients ✦ Flat-Rolled Pizza ✦ Signature Smashburgers ✦ Fresh Ingredients ✦ Flat-Rolled Pizza ✦ Signature Smashburgers ✦ </span></div></div>
-  <div class="ribbon ribbon--tomato" aria-hidden="true"><div class="ribbon__track"><span>Real Pizza ✦ Real Smashburgers ✦ Made with Passion ✦ Real Pizza ✦ Real Smashburgers ✦ Made with Passion ✦ </span><span>Real Pizza ✦ Real Smashburgers ✦ Made with Passion ✦ Real Pizza ✦ Real Smashburgers ✦ Made with Passion ✦ </span></div></div>
-  <button class="motion-btn motion-btn--float" type="button" data-motion aria-pressed="false"><svg class="ico ico--sm" aria-hidden="true" focusable="false"><use href="#i-pause"></use></svg><span data-motion-label>Pause motion</span></button>
-</div>
+{{order_band}}
 
-<section class="sig page" id="signature" aria-labelledby="sig-title">
-  <span class="folio-mark" aria-hidden="true">f. 2r</span>
-  <header class="sec-head">
-    <p class="kicker-s">From the codex</p>
-    <h2 id="sig-title" class="sec-title">Signature <em>studies</em></h2>
-    <p class="mirror sec-mirror" aria-hidden="true"><span class="mirror__in hand" lang="it">studiate con passione</span></p>
-  </header>
-  <ul class="studies" data-scroller>{{signatures}}</ul>
-</section>
-
-<div class="gears-div" aria-hidden="true"><div class="gears-div__art" data-svg="{{root}}assets/art/gears.svg"><img src="{{root}}assets/art/gears.svg" alt="" width="600" height="300" loading="lazy" decoding="async"></div></div>
-
-<section class="spread" id="studio" aria-label="The art and the engineering">
-  <div class="book">
-    <article class="leaf leaf--l" aria-labelledby="art-title">
-      <span class="folio-mark" aria-hidden="true">f. 3v</span>
-      <header class="leaf__head">
-        <p class="kicker-s kicker-s--basil" lang="it">L’Arte</p>
-        <h2 id="art-title" class="leaf__title">The pizza <em>is the art.</em></h2>
-      </header>
-      <div class="wipe" data-wipe>
-        <div class="wipe__photo">{{wipe_photo}}
-          <svg class="wipe__phi" viewBox="0 0 1000 1000" aria-hidden="true" focusable="false"><path d="{{spiral}}"/><path class="faint" d="M618 0v1000M0 382h1000M382 0v1000"/></svg>
-          <span class="phi-tag" aria-hidden="true">φ 1.618</span>
-        </div>
-        <div class="wipe__sketch ink" data-svg="{{root}}assets/art/pizza-study.svg"><img src="{{root}}assets/art/pizza-study.svg" alt="" width="1000" height="1000" loading="lazy" decoding="async"></div>
-        <span class="wipe__line" aria-hidden="true"><span class="wipe__knob"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-chev-l"></use></svg><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-chev-r"></use></svg></span></span>
-        <ul class="pnotes" aria-hidden="true">{{pizza_notes}}</ul>
-      </div>
-      <div class="wipe__ctl">
-        <span class="wipe__lbl hand" aria-hidden="true">sketch</span>
-        <input class="wipe__range" type="range" min="0" max="100" value="42" step="1" data-wipe-input aria-label="Sketch to photo" aria-valuetext="42% photo">
-        <span class="wipe__lbl hand" aria-hidden="true">photo</span>
-      </div>
-    </article>
-    <article class="leaf leaf--r" aria-labelledby="eng-title">
-      <span class="folio-mark" aria-hidden="true">f. 4r</span>
-      <header class="leaf__head">
-        <p class="kicker-s kicker-s--tomato" lang="it">L’Ingegneria</p>
-        <h2 id="eng-title" class="leaf__title">The smashburger <em>is the engineering.</em></h2>
-      </header>
-      <div class="eng" data-explode>
-        <div class="eng__box">
-          <div class="eng__art ink" data-svg="{{root}}assets/art/burger-study.svg"><img src="{{root}}assets/art/burger-study.svg" alt="" width="1000" height="1000" loading="lazy" decoding="async"></div>
-          <ol class="blabs" aria-hidden="true">{{burger_marks}}</ol>
-        </div>
-      </div>
-      <div class="eng-foot">
-        <figure class="pasted">
-          <span class="pasted__ph">{{griddle}}<span class="pasted__ruler" aria-hidden="true"></span></span>
-          <figcaption class="hand">pressed flat · hot griddle</figcaption>
-        </figure>
-        <ol class="blegend" aria-label="The layers of a Double Smash, top to bottom">{{burger_legend}}</ol>
-        <button class="btn btn--sketch" type="button" data-explode-toggle><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-gear"></use></svg><span data-explode-label>Assemble it</span></button>
-      </div>
-    </article>
+<section class="sec" aria-labelledby="sig-title">
+  <div class="sec__head rv">
+    <h2 class="sec__h d" id="sig-title">Start here</h2>
+    <a class="sec__more" href="{{root}}menu/">Full menu {{arrow}}</a>
   </div>
+  <ul class="tiles">{{tiles}}</ul>
 </section>
 
-<div class="pigment" aria-hidden="true"></div>
-
-<section class="teaser page" aria-labelledby="teaser-title">
-  <span class="folio-mark" aria-hidden="true">f. 5r</span>
-  <header class="sec-head sec-head--row">
-    <div><p class="kicker-s">Codex Menu</p><h2 id="teaser-title" class="sec-title">Pick your <em>masterpiece</em></h2></div>
-    <a class="btn btn--ghost" href="{{root}}menu/">See the full menu<svg class="ico" aria-hidden="true" focusable="false"><use href="#i-arrow"></use></svg></a>
-  </header>
-  <ul class="ctiles">{{tiles}}</ul>
+<section class="combos combos--home" aria-labelledby="combos-title">
+  <h2 class="combos__h d rv" id="combos-title">Combos</h2>
+  <ul class="combos__list">{{combos}}</ul>
 </section>
 
-{{combos}}
+{{leonardo}}
 
-<section class="vteaser page" aria-labelledby="vt-title">
-  <span class="folio-mark" aria-hidden="true">f. 7r</span>
-  <div class="vteaser__in">
-    <div class="vteaser__info">
-      <p class="kicker-s">The bottega</p>
-      <h2 id="vt-title" class="sec-title">Come <em>by</em></h2>
-      <p class="addr"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-pin"></use></svg><span>{{address}}<span class="addr__x">{{cross}}</span></span></p>
-      <p class="vteaser__status">{{status_long}}</p>
-      <table class="hours"><caption class="sr">Opening hours</caption><tbody>{{hours}}</tbody></table>
-      <div class="cta-row">
-        <a class="btn btn--ink" href="{{maps}}" target="_blank" rel="noopener"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-arrow"></use></svg>Directions<span class="sr"> (opens Google Maps in a new tab)</span></a>
-        <a class="btn btn--ghost" href="{{root}}visit/">Map, FAQ &amp; catering</a>
-      </div>
+<section class="hb hb--home" aria-labelledby="hb-title">
+  <div class="hb__in">
+    <div class="hb__mark rv">{{halal}}<p class="hb__statement" id="hb-title">{{halal_statement}}</p></div>
+    <div class="hb__where rv">
+      <h2 class="hb__h d">{{where}}</h2>
+      <p class="hb__hood">{{hood}}, {{city}} {{smp}}</p>
+      <p class="hb__status">{{status}}</p>
+      <p class="hb__cta">
+        <a class="btn btn--ink" href="{{maps}}" target="_blank" rel="noopener"><span>Directions</span><span class="sr"> (opens Google Maps in a new tab)</span></a>
+        <a class="btn btn--ink" href="{{root}}contact/"><span>Hours &amp; contact</span></a>
+      </p>
     </div>
-    {{map}}
   </div>
 </section>

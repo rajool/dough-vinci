@@ -4,9 +4,9 @@
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#FFF8EC",
-  "theme_color": "#FFF8EC",
-  "description": "Dough-Vinci Pizza & Burger: freshly rolled pizzas and juicy smashburgers with crispy edges and melted cheese. Real Pizza. Real Smashburgers. Made with Passion.",
+  "background_color": "#121010",
+  "theme_color": "#121010",
+  "description": "Dough-Vinci Pizza & Burger: freshly rolled pizzas and juicy smashburgers with crispy edges and melted cheese, all halal. Real Pizza. Real Smashburgers. Made with Passion.",
   "icons": [
     {
       "src": "apple-touch-icon.png",
@@ -14,9 +14,9 @@
       "type": "image/png"
     },
     {
-      "src": "favicon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml"
+      "src": "favicon.png",
+      "sizes": "64x64",
+      "type": "image/png"
     }
   ]
 }

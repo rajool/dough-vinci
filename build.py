@@ -3,9 +3,9 @@
 
     python3 build.py
 
-Standard library only. Page skeletons live in src/templates/ with {{placeholders}}; everything that repeats (dish
-cards, the dish sheet, hours, the order tiles, the allergen matrix) is rendered here from content/*.json, so a new
-price, dish, address, opening date or delivery link is a JSON edit and a rebuild. Never edit docs/ by hand.
+Standard library only. Page skeletons live in src/templates/ with {{placeholders}}; everything that repeats (the menu
+board, the dish sheet, hours, the order list, the allergen table, the halal mark) is rendered here from content/*.json,
+so a new price, dish, photo, opening date or delivery link is a JSON edit and a rebuild. Never edit docs/ by hand.
 
 Files in docs/ that this build no longer writes are moved to the Trash with `trash` (never deleted outright).
 """
@@ -15,19 +15,15 @@ import datetime as dt
 import hashlib
 import html
 import json
-import math
 import re
-import shutil
 import subprocess
-import sys
 from pathlib import Path
+from urllib.parse import quote
 from zoneinfo import ZoneInfo
 
 ROOT = Path(__file__).resolve().parent
 CONTENT = ROOT / "content"
 SRC = ROOT / "src"
-ART = SRC / "art"
-NEW_ART = ART / "new"
 DOCS = ROOT / "docs"
 
 e = lambda s: html.escape(str(s), quote=True)  # noqa: E731
@@ -39,7 +35,10 @@ def load(name: str) -> dict:
 
 SITE = load("site.json")
 MENU = load("menu.json")
-PHOTOS = {p["key"]: p for p in load("photos.json")["photos"]}
+PHOTO_DOC = load("photos.json")
+PHOTOS = {p["key"]: p for p in PHOTO_DOC["photos"]}
+NO_PHOTO = set(PHOTO_DOC.get("no_photo", []))
+PROFILES = {p["name"]: p["profile"] for p in PHOTO_DOC.get("photographers", [])}
 TZ = ZoneInfo(SITE.get("timezone", "America/Vancouver"))
 TODAY = dt.datetime.now(TZ).date()
 
@@ -47,15 +46,17 @@ ALLERGENS = {
     "wheat": "Wheat", "milk": "Milk", "egg": "Egg", "soy": "Soy", "sesame": "Sesame", "mustard": "Mustard",
     "peanut": "Peanut", "treenut": "Tree nuts", "fish": "Fish", "shellfish": "Shellfish", "sulphites": "Sulphites",
 }
-DIETS = {"vegetarian": "Vegetarian", "vegan": "Vegan", "spicy": "Spicy", "gluten-free-option": "GF option"}
-DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
+DIETS = {"vegetarian": "Vegetarian", "vegan": "Vegan", "spicy": "Spicy", "gluten-free-option": "Gluten-free option"}
+# the menu's filters: a vegan dish also counts as vegetarian
+FILTERS = [("veg", "Vegetarian"), ("spicy", "Spicy"), ("gf", "Gluten-free option")]
 DAY_SHORT = {"mon": "Mon", "tue": "Tue", "wed": "Wed", "thu": "Thu", "fri": "Fri", "sat": "Sat", "sun": "Sun"}
-CAT_WASH = {"pizza": "tomato", "smash": "cheese", "sides": "basil", "desserts": "rose", "drinks": "sky"}
-DV = {"protein_g": (50, "g", "Protein"), "carbs_g": (275, "g", "Carbohydrate"), "fat_g": (75, "g", "Fat"),
-      "sodium_mg": (2300, "mg", "Sodium")}
-FONTS = ("https://fonts.googleapis.com/css2?family=Caveat:wght@600..700"
-         "&family=Fraunces:ital,opsz,wght,SOFT@0,9..144,600..850,100;1,9..144,500..800,100"
-         "&family=Instrument+Sans:wght@400..700&display=swap")
+DAY_LONG = {"mon": "Monday", "tue": "Tuesday", "wed": "Wednesday", "thu": "Thursday", "fri": "Friday",
+            "sat": "Saturday", "sun": "Sunday"}
+FONTS = "https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..100,400..900&display=swap"
+# the serif is only «Made with Passion.» and the Arabic face only «حلال», so this sheet asks Google for those glyphs only
+ACCENT_TEXT = SITE["hero"]["sub"] + SITE["halal"]["mark_ar"]
+FONTS_ACCENT = ("https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@1&family=Noto+Kufi+Arabic:wght@700"
+                f"&text={quote(ACCENT_TEXT)}&display=swap")
 
 CATS = MENU["categories"]
 ITEMS = {it["id"]: (cat, it) for cat in CATS for it in cat["items"]}
@@ -63,34 +64,41 @@ ORDER_IDS = [it["id"] for cat in CATS for it in cat["items"]]
 USED_PHOTOS: dict[str, dict] = {}
 
 
+def check_content() -> None:
+    """Every dish either has its photo (same key in photos.json) or is listed as text-only, never both."""
+    for i in ORDER_IDS:
+        if (i in PHOTOS) == (i in NO_PHOTO):
+            raise SystemExit(f"photos.json: {i} must have a photo or be listed in no_photo, not both or neither")
+    for k in NO_PHOTO - set(ORDER_IDS):
+        raise SystemExit(f"photos.json: no_photo lists {k}, which is not on the menu")
+    for p in PHOTOS.values():
+        if not p.get("alt", "").strip() or p.get("author") not in PROFILES:
+            raise SystemExit(f"photos.json: {p['key']} needs alt text and a listed photographer")
+    for s in SITE.get("signatures", []):
+        if s not in PHOTOS:
+            raise SystemExit(f"site.json: signature {s} has no photo")
+
+
+def has_photo(item_id: str) -> bool:
+    return item_id in PHOTOS
+
+
 # ───────────────────────────────────────────────────────────── photos
 
 
-def photo(ref: str) -> dict:
-    """A photo reference is `key`, `key.alternate`, `key.primary` (the entry's own photo, ignoring `use`) or a key
-    whose entry says `"use": "alternate"` / `"other"` / `"other.alternate"`."""
-    key, _, variant = ref.partition(".")
+def photo(key: str) -> dict:
     ph = PHOTOS[key]
-    if not variant and ph.get("use"):
-        use = ph["use"]
-        return photo(f"{key}.alternate" if use == "alternate" else use)
-    if variant == "alternate":
-        a = ph["alternate"]
-        if not a.get("alt"):
-            raise SystemExit(f"photos.json: the alternate of {key} is used but has no alt text")
-        d = {"url": a["url"], "alt": a["alt"], "author": a["author"], "page": a["page"], "crop": a.get("crop")}
-    else:
-        d = {"url": ph["url"], "alt": ph["alt"], "author": ph["author"], "page": ph["page"], "crop": ph.get("crop")}
-    USED_PHOTOS.setdefault(d["url"], d)
-    return d
+    USED_PHOTOS.setdefault(ph["url"], ph)
+    return ph
 
 
-def img_url(ph: dict, w: int, ratio: float | None = None, q: int = 75) -> str:
+def img_url(ph: dict, w: int, ratio: float | None = None, q: int = 75, crop: tuple | None = None) -> str:
+    """Unsplash (imgix) crops the frame to the slot's ratio around the focal point, so no pixel is sent twice."""
     parts = ["auto=format", "fit=crop", f"w={w}"]
     if ratio:
         parts.append(f"h={round(w / ratio)}")
     parts.append(f"q={q}")
-    c = ph.get("crop")
+    c = crop or ph.get("crop")
     if c:
         parts += ["crop=focalpoint", f"fp-x={c[0]}", f"fp-y={c[1]}", f"fp-z={c[2]}"]
     return ph["url"] + "?" + "&".join(parts)
@@ -101,10 +109,12 @@ WIDTHS = (400, 600, 800, 1000, 1200, 1600)
 # for those screens repeats the srcset with every slot in `sizes` scaled by 2/3, so the browser asks for 2x.
 HI_DPR = "(min-resolution: 2.5dppx), (-webkit-min-device-pixel-ratio: 2.5)"
 LO_DPR = "(max-resolution: 2.49dppx)"
+PHONE = "(max-width: 899px)"
+WIDE = "(min-width: 900px)"
 
 
-def srcset(ph: dict, ratio: float, max_w: int = 1600) -> list[tuple[str, int]]:
-    return [(img_url(ph, w, ratio), w) for w in WIDTHS if w <= max_w]
+def srcset(ph: dict, ratio: float, max_w: int = 1600, crop: tuple | None = None) -> list[tuple[str, int]]:
+    return [(img_url(ph, w, ratio, crop=crop), w) for w in WIDTHS if w <= max_w]
 
 
 def scale_sizes(sizes: str, f: float) -> str:
@@ -118,124 +128,95 @@ def scale_sizes(sizes: str, f: float) -> str:
     return ", ".join(out)
 
 
-def img(ref: str, sizes: str, ratio: float, *, cls: str = "", eager: bool = False, alt: str | None = None,
-        max_w: int = 1600, crop: tuple | None = None, low: bool = False) -> str:
-    """A responsive Unsplash photo. alt="" for a photo inside a link that its own text already names."""
-    ph = photo(ref)
-    if crop:
-        ph = {**ph, "crop": crop}
-    ss = srcset(ph, ratio, max_w)
-    src = ss[min(1, len(ss) - 1)][0]
+def phone_sizes(sizes: str) -> str:
+    """The slot length a phone uses: the last part of `sizes`, the one without a media condition."""
+    return sizes.split(",")[-1].strip()
+
+
+def img(key: str, sizes: str, ratio: float, *, eager: bool = False, high: bool | None = None, alt: str | None = None,
+        max_w: int = 1600, crop: tuple | None = None, phone_ratio: float | None = None) -> str:
+    """A responsive Unsplash photo. alt="" for a photo inside a link that its own text already names.
+
+    eager: on the first screen, so not lazy (and fetchpriority=high unless high=False). phone_ratio: the box a phone
+    shows (under 900 px) when it differs from `ratio`, so a phone loads that crop instead of cutting a taller one."""
+    ph = photo(key)
+    ss = srcset(ph, ratio, max_w, crop)
+    src = ss[min(2, len(ss) - 1)][0]
     w = ss[-1][1]
-    a = alt if alt is not None else ph["alt"]
-    if eager:
-        load_attr = 'fetchpriority="high" decoding="async"'
-    else:
-        load_attr = ('fetchpriority="low" ' if low else "") + 'loading="lazy" decoding="async"'
-    c = f' class="{cls}"' if cls else ""
+    a = ph["alt"] if alt is None else alt
+    high = eager if high is None else high
+    load_attr = ('fetchpriority="high" ' if high else 'loading="eager" ' if eager else 'loading="lazy" ') + 'decoding="async"'
     set_ = e(", ".join(f"{u} {w}w" for u, w in ss))
-    return (f'<picture><source media="{HI_DPR}" srcset="{set_}" sizes="{scale_sizes(sizes, 2 / 3)}">'
-            f'<img{c} src="{e(src)}" srcset="{set_}" sizes="{sizes}" '
-            f'width="{w}" height="{round(w / ratio)}" alt="{e(a)}" {load_attr}></picture>')
+    sources = ""
+    if phone_ratio:
+        pset = e(", ".join(f"{u} {w}w" for u, w in srcset(ph, phone_ratio, max_w, crop)))
+        psz = phone_sizes(sizes)
+        hi = ", ".join(f"{PHONE} and {m.strip()}" for m in HI_DPR.split(","))
+        sources += (f'<source media="{hi}" srcset="{pset}" sizes="{scale_sizes(psz, 2 / 3)}">'
+                    f'<source media="{PHONE}" srcset="{pset}" sizes="{psz}">')
+    return (f'<picture>{sources}<source media="{HI_DPR}" srcset="{set_}" sizes="{scale_sizes(sizes, 2 / 3)}">'
+            f'<img src="{e(src)}" srcset="{set_}" sizes="{sizes}" width="{w}" height="{round(w / ratio)}" '
+            f'alt="{e(a)}" {load_attr}></picture>')
 
 
-def preload(ref: str, sizes: str, ratio: float, max_w: int = 1600, crop: tuple | None = None) -> str:
-    """Preloads that pick the same file as img(): one for 3x phones (2x file), one for everything else."""
-    ph = photo(ref)
-    if crop:
-        ph = {**ph, "crop": crop}
-    ss = srcset(ph, ratio, max_w)
+def preload(key: str, sizes: str, ratio: float, max_w: int = 1600, crop: tuple | None = None,
+            phone_ratio: float | None = None) -> str:
+    """Preloads that pick the same file as img(): the 2x file for 3x screens, the crop a phone shows, and each with a
+    media query that excludes the others, so a browser fetches one file."""
+    ph = PHOTOS[key]
+    ss = srcset(ph, ratio, max_w, crop)
     set_ = e(", ".join(f"{u} {w}w" for u, w in ss))
-    return "\n".join(f'<link rel="preload" as="image" href="{e(ss[1][0])}" imagesrcset="{set_}" imagesizes="{sz}" '
-                     f'media="{media}" fetchpriority="high">'
-                     for media, sz in ((LO_DPR, sizes), (HI_DPR, scale_sizes(sizes, 2 / 3))))
+    hi, lo = "(min-resolution: 2.5dppx)", LO_DPR
+    rows = [(set_, ss, media, sz) for media, sz in ((lo, sizes), (HI_DPR, scale_sizes(sizes, 2 / 3)))]
+    if phone_ratio:
+        pss = srcset(ph, phone_ratio, max_w, crop)
+        pset = e(", ".join(f"{u} {w}w" for u, w in pss))
+        psz = phone_sizes(sizes)
+        rows = [(pset, pss, f"{PHONE} and {lo}", psz), (pset, pss, f"{PHONE} and {hi}", scale_sizes(psz, 2 / 3)),
+                (set_, ss, f"{WIDE} and {lo}", sizes), (set_, ss, f"{WIDE} and {hi}", scale_sizes(sizes, 2 / 3))]
+    return "\n".join(f'<link rel="preload" as="image" href="{e(lst[min(2, len(lst) - 1)][0])}" imagesrcset="{st}" '
+                     f'imagesizes="{sz}" media="{media}" fetchpriority="high">' for st, lst, media, sz in rows)
 
 
-# ───────────────────────────────────────────────────────────── icons and art
+# ───────────────────────────────────────────────────────────── marks and icons
 
-
-FALLBACK_SPRITE = ART / "ui-icons.svg"
-NEW_SPRITE = NEW_ART / "allergens.svg"
-
-
-def load_symbols() -> dict[str, str]:
-    """Every <symbol> by id: the fallback sprite first, then the illustrator's allergens.svg, which wins on shared ids."""
-    symbols: dict[str, str] = {}
-    for path in (FALLBACK_SPRITE, NEW_SPRITE):
-        if path.exists():
-            text = path.read_text(encoding="utf-8")
-            for m in re.finditer(r'<symbol\b[^>]*\bid="([^"]+)"[^>]*>.*?</symbol>', text, flags=re.S):
-                symbols[m.group(1)] = m.group(0)
-    return symbols
-
-
-SYMBOLS = load_symbols()
-SPRITE_IDS = set(SYMBOLS)
-
-
-def sprite_for(doc: str, extra: set[str] = frozenset()) -> str:
-    """Inline only the symbols a page uses (plus those the dish sheet may bring in)."""
-    used = set(re.findall(r'<use href="#([^"]+)"', doc)) | set(extra)
-    body = "".join(SYMBOLS[i] for i in sorted(used) if i in SYMBOLS)
-    return f'<svg class="sprite" aria-hidden="true" focusable="false" width="0" height="0">{body}</svg>'
+ICONS = {
+    # a delivery scooter with its box, drawn as plain square-ended lines
+    "scooter": '<rect x="2" y="5.5" width="7" height="5.5"/><path d="M2 14h8.5l3-6.5H17"/><path d="M14.5 7.5l4 9.5"/>'
+               '<path d="M8 17h8"/><circle cx="5.5" cy="17" r="2.5"/><circle cx="19" cy="17" r="2.5"/>',
+    "arrow": '<path d="M3 12h16M13 6l6 6-6 6"/>',
+    "back": '<path d="M21 12H5M11 6l-6 6 6 6"/>',
+    "out": '<path d="M14 4h6v6M20 4l-9 9M18 14v6H4V6h6"/>',
+    "phone": '<path d="M5 3h4l2 5-2.5 1.5a11 11 0 0 0 6 6L16 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 5a2 2 0 0 1 2-2z"/>',
+    "pin": '<path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>',
+    "mail": '<rect x="3" y="5" width="18" height="14"/><path d="M3 6l9 7 9-7"/>',
+}
 
 
 def icon(name: str, cls: str = "ico") -> str:
-    if name not in SPRITE_IDS:
-        raise SystemExit(f"icon #{name} is missing from the sprite")
-    return f'<svg class="{cls}" aria-hidden="true" focusable="false"><use href="#{name}"></use></svg>'
+    return (f'<svg class="{cls}" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" '
+            f'stroke="currentColor" stroke-width="2" stroke-linecap="square">{ICONS[name]}</svg>')
 
 
-def art_css() -> str:
-    """Colours the drawings expect. The illustrator's art.css plus the washes of the two older studies."""
-    parts = []
-    if (NEW_ART / "art.css").exists():
-        parts.append((NEW_ART / "art.css").read_text(encoding="utf-8"))
-    parts.append((SRC / "css" / "art-studies.css").read_text(encoding="utf-8"))
-    return "\n".join(parts)
+def halal_mark(cls: str = "") -> str:
+    """The owner's neon sign, drawn flat: «حلال» inside a ring on a basil disc, the word Halal beside it."""
+    h = SITE["halal"]
+    return (f'<span class="halal {cls}"><span class="halal__disc" aria-hidden="true"><span lang="ar" dir="rtl">'
+            f'{e(h["mark_ar"])}</span></span><span class="halal__en">{e(h["mark_en"])}</span></span>')
 
 
-def clean_svg(text: str) -> str:
-    text = re.sub(r"<\?xml[^>]*>\s*", "", text)
-    text = re.sub(r"<!--.*?-->\s*", "", text, flags=re.S)
-    return text.strip()
+def halal_statement() -> str:
+    """«All our meat is halal.» and «No pork, no alcohol.» each on its own line, so the negation stays with its noun."""
+    parts = re.split(r"(?<=\.)\s+", SITE["halal"]["statement"])
+    return " ".join(f"<span>{e(x)}</span>" for x in parts)
 
 
-def chunk_strokes(svg: str, cls: str, size: int) -> str:
-    """Merge runs of stroke paths of one class into compound paths, so inking touches dozens of elements, not hundreds."""
-    run = re.compile(rf'(?:<path class="{cls}" pathLength="1" style="--i:\d+" d="[^"]*"/>\s*)+')
-
-    def merge(m: re.Match) -> str:
-        ds = re.findall(r' d="([^"]*)"', m.group(0))
-        return "".join(f'<path class="{cls}" pathLength="1" style="--i:{i // size}" d="{"".join(ds[i:i + size])}"/>'
-                       for i in range(0, len(ds), size))
-
-    return run.sub(merge, svg)
+def tricolour(cls: str) -> str:
+    return f'<span class="tri {cls}" aria-hidden="true"><i></i><i></i><i></i></span>'
 
 
-def bake(svg: str, extra_class: str = "") -> str:
-    """A drawing that renders on its own (as <img> or inlined): its colours go inside as a <style>."""
-    svg = clean_svg(svg)
-    style = "<style>" + re.sub(r"\s+", " ", art_css()) + "</style>"
-    svg = re.sub(r"(<svg\b[^>]*>)", lambda m: m.group(1) + style, svg, count=1)
-    if extra_class:
-        svg = svg.replace('class="codex-art', f'class="{extra_class} codex-art', 1)
-    return svg
-
-
-def line_only(svg: str) -> str:
-    """The pizza study with only construction and contour lines: the footer watermark."""
-    svg = re.sub(r'<g\b[^>]*class="art-group art-group--wash"[^>]*>.*?</g>', "", svg, flags=re.S)
-    svg = re.sub(r'<g\b[^>]*class="art-group art-group--hatch"[^>]*>.*?</g>', "", svg, flags=re.S)
-    svg = re.sub(r'<circle class="art-dot"[^>]*/>', "", svg)
-    return svg
-
-
-def mark_svg() -> str:
-    path = NEW_ART / "vitruvian-mark.svg"
-    if path.exists():
-        return path.read_text(encoding="utf-8")
-    return (SRC / "art" / "mark-fallback.svg").read_text(encoding="utf-8")
+def wordmark(tag: str = "span") -> str:
+    return f'<{tag} class="wm">Dough<span class="wm__dash">-</span>Vinci</{tag}>'
 
 
 # ───────────────────────────────────────────────────────────── small formatters
@@ -246,21 +227,46 @@ def money(p: str | float) -> str:
     return f"${v:g}" if v == int(v) else f"${v:.2f}"
 
 
-def price_from(item: dict) -> str:
-    ps = sorted(float(p["price"]) for p in item["prices"])
-    return money(ps[0]) if len(ps) == 1 else f"from {money(ps[0])}"
+def size_label(label: str) -> str:
+    """12" for the eye, «12-inch» for screen readers."""
+    m = re.fullmatch(r'(\d+)"', label)
+    if m:
+        return f'<span aria-hidden="true">{m.group(1)}″</span><span class="sr">{m.group(1)}-inch</span>'
+    return e(label)
 
 
-def slices(item: dict) -> int | None:
-    m = re.search(r"\((\d+) slices\)", item.get("portion", ""))
-    return int(m.group(1)) if m else None
+def sr_size(label: str) -> str:
+    """On the board the column heads show 12″ and 16″; each price still says its size to a screen reader."""
+    m = re.fullmatch(r'(\d+)"', label)
+    return f'<span class="sr">{m.group(1)}-inch </span>' if m else f'<span class="sr">{e(label)} </span>'
+
+
+def inches(text: str) -> str:
+    """A size written 12" in the content reads 12″ on the page and «12-inch» to a screen reader."""
+    return re.sub(r'(\d+)&quot;', r'<span aria-hidden="true">\1″</span><span class="sr">\1-inch</span>', e(text))
+
+
+def is_pizza(item: dict) -> bool:
+    return bool(re.match(r"12-inch pizza", item.get("portion", "")))
+
+
+def basis(item: dict) -> str:
+    """What the calories are for, in the board's short form."""
+    if is_pizza(item):
+        return "per 12″ pie, whole"
+    return "per " + item["portion"]
+
+
+def basis_long(item: dict) -> str:
+    p = item["portion"]
+    if is_pizza(item):
+        return "Per 12″ pie, whole" + (f" ({m.group(1)} slices)" if (m := re.search(r"\((\d+) slices\)", p)) else "")
+    return "Per " + p
 
 
 def fmt_time(t: str) -> str:
     h, m = map(int, t.split(":"))
-    suf = "am" if h < 12 else "pm"
-    h12 = h % 12 or 12
-    return f"{h12}{':' + str(m).zfill(2) if m else ''} {suf}"
+    return f"{h % 12 or 12}{':' + str(m).zfill(2) if m else ''} {'am' if h < 12 else 'pm'}"
 
 
 def day_range(days: list[str]) -> str:
@@ -280,434 +286,382 @@ def opening_long(d: dt.date) -> str:
     return f"{d:%a}, {d:%b} {d.day}"
 
 
-def status_html(variant: str) -> str:
-    """The pill. Rendered at build time (pre-opening date, or a neutral 'hours' link); site.js keeps it live."""
-    od = opening()
-    street = SITE["contact"]["street"]
-    if od and TODAY < od:
-        text = f"Opening {opening_short(od)}" if variant == "short" else f"Opening {opening_long(od)} · {street}"
-        cls = "is-soon"
-    else:
-        text, cls = "Hours", ""
-    return (f'<span class="pill {cls}" data-status="{variant}"><span class="pill__dot" aria-hidden="true"></span>'
-            f'<span data-status-text>{e(text)}</span></span>')
-
-
 def tel() -> str:
     return "+1" + re.sub(r"\D", "", SITE["contact"]["phone"])
 
 
-# ───────────────────────────────────────────────────────────── components
+def preview() -> bool:
+    return bool(SITE.get("preview"))
 
 
-def diet_pills(item: dict, cls: str = "diet") -> str:
-    return "".join(f'<li class="{cls} {cls}--{d}">{icon("d-" + d)}<span>{DIETS[d]}</span></li>' for d in item.get("diet", []))
+def sample_tag(what: str = "Sample") -> str:
+    """A quiet label beside a datum a customer would rely on, while it is still a sample."""
+    return f'<span class="smp">{e(what)}</span>' if preview() else ""
 
 
-def allergen_items(keys: list[str], cls: str = "alg", commas: bool = False) -> str:
-    """With commas, a hidden ", " between names, so a link that contains the list reads «Wheat, Milk», not «Wheat Milk»."""
-    sep = lambda i: '<span class="sr">, </span>' if commas and i < len(keys) - 1 else ""  # noqa: E731
-    return "".join(f'<li class="{cls}">{icon("a-" + k)}<span>{ALLERGENS[k]}</span>{sep(i)}</li>' for i, k in enumerate(keys))
+def status(variant: str) -> str:
+    """The open-now line, as true at build time; site.js keeps it live. Before the opening date it gives the date;
+    while the preview is on after that it says nothing about being open, because the hours are samples."""
+    od = opening()
+    if od and TODAY < od:
+        text = f"Opening {opening_short(od)}" if variant == "short" else f"Opening {opening_long(od)}"
+        state = "soon"
+    else:
+        text, state = ("", "") if variant == "short" else ("See the hours", "")
+    hidden = " hidden" if not text else ""
+    return f'<span class="status" data-status="{variant}" data-state="{state}"{hidden}>{e(text)}</span>'
 
 
-def kcal_chips(item: dict) -> str:
-    s = slices(item)
-    whole = f'<span class="kcal"><b>{item["kcal"]:,}</b> kcal{" whole" if s else ""}</span>'
-    per = f'<span class="kcal kcal--slice"><b>{round(item["kcal"] / s):,}</b> kcal/slice</span>' if s else ""
-    return whole + per
+# ───────────────────────────────────────────────────────────── shared blocks
 
 
-def card(item: dict, cat: dict, root: str, n: int) -> str:
-    al = item["allergens"]
-    badge = f'<span class="stamp">{e(item["badge"])}</span>' if item.get("badge") else ""
-    # no aria-label on the list: inside a link it would replace the allergen names in the link's accessible name.
-    # The hidden label is out of flow (.sr is absolute), so it adds no gap to the flex column.
-    alg = (f'<span class="sr">Contains: </span><ul class="algs">{allergen_items(al, commas=True)}</ul>' if al
-           else '<p class="algs algs--none">No priority allergens</p>')
-    diets = f'<ul class="diets">{diet_pills(item)}</ul>' if item.get("diet") else ""
-    return f'''<li class="dish" data-id="{item['id']}" data-allergens="{' '.join(al)}" data-may="{' '.join(item.get('may_contain', []))}" data-diet="{' '.join(item.get('diet', []))}" style="--k:{n % 4}">
-  <a class="dish__link" href="{root}menu/{item['id']}/" data-dish="{item['id']}">
-    <span class="dish__photo wash--{CAT_WASH[cat['id']]}">{img(item['id'], '(min-width: 1180px) 280px, (min-width: 700px) 30vw, 46vw', 4 / 3, max_w=800, alt="")}{badge}<span class="folio" aria-hidden="true">f. {n}r</span></span>
-    <div class="dish__body">
-      <div class="dish__head"><h3 class="dish__name">{e(item['name'])}</h3><span class="dish__price">{price_from(item)}</span></div>
-      <div class="dish__kcal">{kcal_chips(item)}</div>
-      {diets}{alg}
-    </div>
-    <span class="dish__out"></span>
+def apps_list(cls: str) -> str:
+    """The four apps by name as plain text, then Call for pickup. No payment on this site."""
+    rows = [f'<li><a href="{e(d["url"])}" target="_blank" rel="noopener"><span class="{cls}__name">{e(d["name"])}</span>'
+            f'{icon("out", "ico ico--sm")}<span class="sr"> (opens in a new tab)</span></a></li>' for d in SITE["delivery"]]
+    return "".join(rows)
+
+
+def order_band(level: int = 2) -> str:
+    """The red band: every page has it, with id="order", so every Order link works without JavaScript."""
+    c = SITE["contact"]
+    return f'''<section class="ob wipe" id="order" aria-labelledby="ob-title">
+  <div class="ob__in">
+    <h{level} class="ob__h d" id="ob-title">Order</h{level}>
+    <div class="ob__apps"><p class="ob__lbl">Delivery or pickup</p><ul class="ob__list">{apps_list("ob")}</ul></div>
+    <div class="ob__call"><p class="ob__lbl">Call for pickup {sample_tag()}</p><a class="ob__tel" href="tel:{tel()}">{e(c["phone"])}</a></div>
+    {halal_mark("halal--band")}
+  </div>
+</section>'''
+
+
+def hours_table(cls: str = "hours") -> str:
+    rows = []
+    for h in SITE["hours"]:
+        today = " is-today" if TODAY.strftime("%a").lower()[:3] in h["days"] else ""
+        rows.append(f'<tr class="{today.strip()}" data-days="{" ".join(h["days"])}"><th scope="row">{day_range(h["days"])}'
+                    f'<span class="hours__today"{"" if today else " hidden"}> · today</span></th>'
+                    f'<td>{fmt_time(h["open"])} – {fmt_time(h["close"])}</td></tr>')
+    return f'<table class="{cls}"><caption class="sr">Opening hours, Vancouver time</caption><tbody>{"".join(rows)}</tbody></table>'
+
+
+def leonardo(heading: str = "p") -> str:
+    """One real drawing in its own ink on a cream panel, its credit, and the one line beside it."""
+    L = SITE["leonardo"]
+    w0, h0 = L["ratio"]
+    ws = L["widths"]
+    set_ = e(", ".join(f"{L['file'].format(w=w)} {w}w" for w in ws))
+    # the drawing is a supporting figure: about a third of the width on wide screens, two thirds of a phone's
+    sizes = "(min-width: 900px) 34vw, (min-width: 600px) 36vw, 60vw"
+    line = e(L["line"])
+    first, _, rest = L["line"].partition(". ")
+    line = f'<span>{e(first)}.</span> <span class="leo__b">{e(rest)}</span>' if rest else line
+    return f'''<section class="leo" aria-label="The idea">
+  <div class="leo__in">
+    <figure class="leo__fig rv">
+      <picture><source media="{HI_DPR}" srcset="{set_}" sizes="{scale_sizes(sizes, 2 / 3)}"><img src="{e(L['file'].format(w=ws[1]))}" srcset="{set_}" sizes="{sizes}" width="{w0}" height="{h0}" alt="{e(L['alt'])}" loading="lazy" decoding="async"></picture>
+      <figcaption><a href="{e(L['page'])}" target="_blank" rel="noopener">{e(L['credit'])}<span class="sr"> (opens in a new tab)</span></a></figcaption>
+    </figure>
+    <{heading} class="leo__line d rv">{line}</{heading}>
+  </div>
+</section>'''
+
+
+# ───────────────────────────────────────────────────────────── menu
+
+
+def diet_words(item: dict) -> list[str]:
+    out = []
+    if item.get("badge"):
+        out.append(f'<b class="t-sig">{e(item["badge"])}</b>')
+    for d in item.get("diet", []):
+        cls = {"vegetarian": "t-veg", "vegan": "t-veg", "spicy": "t-hot"}.get(d, "t-gf")
+        out.append(f'<b class="{cls}">{DIETS[d]}</b>')
+    return out
+
+
+def allergen_text(keys: list[str], none: str) -> str:
+    return ", ".join(ALLERGENS[k] for k in keys) if keys else none
+
+
+def flags(item: dict) -> str:
+    d = item.get("diet", [])
+    return (f'data-veg="{str("vegetarian" in d or "vegan" in d).lower()}" data-spicy="{str("spicy" in d).lower()}" '
+            f'data-gf="{str("gluten-free-option" in d).lower()}"')
+
+
+def board_row(item: dict, root: str) -> str:
+    multi = len(item["prices"]) > 1
+    prices = "".join(f'<span class="row__p">{sr_size(p["label"]) if multi else ""}'
+                     f'<span class="row__n">{money(p["price"])}</span></span>' for p in item["prices"])
+    meta = [f'{item["kcal"]:,} kcal {basis(item)}', "Contains " + allergen_text(item["allergens"], "no major allergens").lower()
+            if item["allergens"] else "No major allergens"] + diet_words(item)
+    return f'''<li class="row" {flags(item)}>
+  <a class="row__a" href="{root}menu/{item['id']}/" data-dish="{item['id']}">
+    <span class="row__top"><span class="row__name">{e(item['name'])}</span><span class="row__dots" aria-hidden="true"></span><span class="row__ps">{prices}</span></span>
+    <span class="row__short">{e(item['short'])}</span>
+    <span class="row__meta">{'<span class="sep" aria-hidden="true"> · </span>'.join(meta)}</span>
   </a>
 </li>'''
 
 
-def order_card() -> str:
-    return f'''<li class="menu-cta"><div class="menu-cta__in">
-  <img class="menu-cta__art" src="{{{{root}}}}assets/art/flying-machine.svg" alt="" width="1200" height="700" loading="lazy" decoding="async">
-  <p class="hand menu-cta__k">Hungry already?</p>
-  <p class="menu-cta__t">Delivered by your favourite app</p>
-  <a class="btn btn--order" href="#order" data-order>{icon("i-bag")}<span>Order</span></a>
-</div></li>'''
+def board(cat: dict, root: str, side: dict | None = None) -> str:
+    """The cream price board: two columns of rows, or one column beside the section's only photo."""
+    items = cat["items"]
+    multi = len(items[0]["prices"]) > 1
+    half = (len(items) + 1) // 2
+    cols = [items] if side or len(items) < 2 else [items[:half], items[half:]]
+    head = ""
+    if multi:
+        head = ('<p class="board__head" aria-hidden="true">' +
+                "".join(f'<span>{e(p["label"]).replace("&quot;", "″")}</span>' for p in items[0]["prices"]) + "</p>")
+    body = "".join(f'<div class="board__col">{head}<ul class="board__list">{"".join(board_row(i, root) for i in col)}</ul></div>'
+                   for col in cols)
+    ph = ""
+    if side:
+        ph = (f'<div class="board__ph strip__i" {flags(side)}><a href="{root}menu/{side["id"]}/" data-dish="{side["id"]}">'
+              f'<span class="ph">{img(side["id"], "(min-width: 900px) 40vw, 100vw", 4 / 3, alt="", max_w=1200)}</span>'
+              f'<span class="strip__lab"><span class="strip__name">{e(side["name"])}</span>'
+              f'<span class="strip__p">{money(side["prices"][0]["price"])}</span></span></a></div>')
+    cls = "board" + (" board--side" if side else "") + (" board--one" if len(cols) == 1 and not side else "")
+    return (f'<div class="{cls}"><div class="board__cols">{body}'
+            f'<p class="board__none" hidden>No dishes in this section match.</p></div>{ph}</div>')
+
+
+STRIP_RATIO = {1: 21 / 9, 2: 16 / 10, 3: 1, 4: 4 / 5}
+
+
+def shots_for(cat: dict) -> list[dict]:
+    """The section's photos: photos.json `strips` picks them (one angle family per strip), else every photographed dish."""
+    pick = PHOTO_DOC.get("strips", {}).get(cat["id"])
+    if pick:
+        return [ITEMS[i][1] for i in pick]
+    return [i for i in cat["items"] if has_photo(i["id"])]
+
+
+def strip_sizes(n: int) -> str:
+    return "100vw" if n == 1 else (f"(min-width: 900px) {round(100 / n)}vw, 86vw" if n == 2 else
+                                   f"(min-width: 900px) {round(100 / n)}vw, 78vw")
+
+
+def strip(cat: dict, root: str, first: bool = False) -> str:
+    """Photos only of this category's own dishes, each opening its dish; none when the section has no photos.
+    A photo's `strip_crop` in photos.json frames it for the strip (so a strip reads as one family); the dish sheet keeps
+    its `crop`. The menu's first strip is on the first screen, so it loads at once, its first photo first."""
+    shots = shots_for(cat)
+    if not shots:
+        return ""
+    n = len(shots)
+    ratio = STRIP_RATIO[min(n, 4)]
+    sizes = strip_sizes(n)
+    cells = []
+    for k, it in enumerate(shots):
+        c = PHOTOS[it["id"]].get("strip_crop")
+        pic = img(it['id'], sizes, ratio, alt="", max_w=1600 if n == 1 else 1200, crop=tuple(c) if c else None,
+                  eager=first, high=first and k == 0, phone_ratio=4 / 3 if n == 1 else None)
+        cells.append(f'''<li class="strip__i" {flags(it)}><a href="{root}menu/{it['id']}/" data-dish="{it['id']}">
+  <span class="ph">{pic}</span>
+  <span class="strip__lab"><span class="strip__name">{e(it['name'])}</span><span class="strip__p">{money(it['prices'][0]['price'])}</span></span>
+</a></li>''')
+    return f'<ul class="strip strip--{n}" style="--r:{ratio:.4f}">{"".join(cells)}</ul>'
+
+
+def from_price(cat: dict) -> str:
+    return money(min(float(i["prices"][0]["price"]) for i in cat["items"]))
+
+
+def section_body(cat: dict, root: str, first: bool = False) -> str:
+    """A wide strip above the board; a small section's only photo sits beside its board instead."""
+    shots = shots_for(cat)
+    if len(shots) == 1 and len(cat["items"]) <= 3:
+        return board(cat, root, side=shots[0])
+    return strip(cat, root, first) + board(cat, root)
+
+
+def menu_preload() -> str:
+    """The first photo of the menu's first strip, on the first screen of the page."""
+    cat = CATS[0]
+    shots = shots_for(cat)
+    if not shots or (len(shots) == 1 and len(cat["items"]) <= 3):
+        return ""
+    n = len(shots)
+    c = PHOTOS[shots[0]["id"]].get("strip_crop")
+    return preload(shots[0]["id"], strip_sizes(n), STRIP_RATIO[min(n, 4)], max_w=1600 if n == 1 else 1200,
+                   crop=tuple(c) if c else None, phone_ratio=4 / 3 if n == 1 else None)
 
 
 def menu_sections(root: str) -> str:
-    """One section per category. Two small categories that fit one row together (desserts and drinks) share it."""
-    out, n = [], 0
-    for cat in CATS:
-        cards = []
-        for it in cat["items"]:
-            n += 1
-            cards.append(card(it, cat, root, n))
-        if cat["id"] == "pizza":
-            cards.append(order_card().replace("{{root}}", root))
-        out.append((len(cards), f'''<section class="cat" id="{cat['id']}" aria-labelledby="cat-{cat['id']}" data-spy>
-  <header class="cat__head"><h2 class="cat__title" id="cat-{cat['id']}">{e(cat['name'])} <span class="cat__it" lang="it">{e(cat['italian'])}</span></h2>
-  <p class="cat__tag hand">{e(cat['tagline'])}</p></header>
-  <ul class="dishes" style="--cols:{4 if len(cards) > 5 else len(cards)}">{"".join(cards)}</ul>
-</section>'''))
-    html_parts, i = [], 0
-    while i < len(out):
-        if i + 1 < len(out) and out[i][0] <= 3 and out[i + 1][0] <= 3 and out[i][0] + out[i + 1][0] <= 5:
-            html_parts.append(f'<div class="cat-pair" style="grid-template-columns:{out[i][0]}fr {out[i + 1][0]}fr">{out[i][1]}{out[i + 1][1]}</div>')
-            i += 2
+    out = []
+    for ci, cat in enumerate(CATS):
+        n = len(cat["items"])
+        out.append(f'''<section class="cat" id="{cat['id']}" aria-labelledby="h-{cat['id']}" data-spy>
+  <header class="cat__head rv"><h2 class="cat__h d" id="h-{cat['id']}">{e(cat['name'])}</h2>
+    <p class="cat__tag">{e(cat['tagline'])} <span class="cat__n">{n} {'dish' if n == 1 else 'dishes'}, from {from_price(cat)}.</span></p></header>
+  {section_body(cat, root, first=ci == 0)}
+</section>''')
+    return "\n".join(out)
+
+
+def combos_html(level: int, link: bool, root: str) -> str:
+    cards = []
+    for c in MENU["combos"]:
+        inner = (f'<h{level + 1} class="combo__name d">{e(c["name"])}</h{level + 1}>'
+                 f'<p class="combo__price d">{money(c["price"])}</p>'
+                 f'<p class="combo__in">{inches(", ".join(c["contents"]))}</p>')
+        if link:
+            cards.append(f'<li class="combo rv"><a href="{root}menu/#combo-{c["id"]}">{inner}'
+                         f'<span class="combo__go">{icon("arrow")}</span></a></li>')
         else:
-            html_parts.append(out[i][1])
-            i += 1
-    return "\n".join(html_parts)
+            cards.append(f'<li class="combo rv" id="combo-{c["id"]}">{inner}</li>')
+    return "".join(cards)
 
 
-def category_tabs() -> str:
-    tabs = [f'<li><a class="tab" href="#{c["id"]}" data-tab="{c["id"]}"><span class="tab__it" lang="it" aria-hidden="true">{e(c["italian"])}</span><span>{e(c["name"])}</span></a></li>'
-            for c in CATS]
-    tabs.append('<li><a class="tab" href="#combos" data-tab="combos"><span class="tab__it" lang="it" aria-hidden="true">Le Offerte</span><span>Combos</span></a></li>')
-    return "".join(tabs)
+# ───────────────────────────────────────────────────────────── the dish sheet
 
 
-def filter_chips() -> tuple[str, str]:
-    diets = "".join(f'<button class="chip chip--diet" type="button" aria-pressed="false" data-diet="{d}">{icon("d-" + d)}<span>{DIETS[d]}</span></button>'
-                    for d in DIETS)
-    avoid = "".join(f'<button class="chip chip--avoid" type="button" aria-pressed="false" data-avoid="{k}">{icon("a-" + k)}<span>{ALLERGENS[k]}</span></button>'
-                    for k in MENU["allergen_keys"])
-    return diets, avoid
+DISH_PAGE_SIZES = "(min-width: 900px) 50vw, 100vw"      # half the page, as tall as the screen under the header
+DISH_SHEET_SIZES = "(min-width: 1080px) 540px, (min-width: 900px) 50vw, 100vw"  # half the sheet, full height
+DISH_SHEET_RATIO = 3 / 5
 
 
-def construct_svg(cls: str) -> str:
-    """Red-chalk circle-and-square construction behind a dish photo."""
-    return f'''<svg class="{cls}" viewBox="0 0 400 500" aria-hidden="true" focusable="false">
-  <path d="M200 40a210 210 0 1 1-.1 0z" class="c-faint"/><path d="M20 70h360v360H20z"/><path d="M200 8v484M8 250h384" class="c-faint"/>
-  <path d="M20 70l360 360M380 70 20 430" class="c-faint"/><path d="M200 22v14M200 464v14M14 250h14M372 250h14"/>
-  <path d="M20 470h360M20 462v16M380 462v16"/></svg>'''
+def dish_photo(item_id: str, page: bool, eager: bool = False) -> str:
+    """The dish's photo as its own page shows it (a 4:5 panel) or as the sheet does (a full-height 3:5 panel); 4:3 on
+    phones, where it sits on top."""
+    if page:
+        return img(item_id, DISH_PAGE_SIZES, 4 / 5, max_w=1200, eager=eager, phone_ratio=4 / 3)
+    return img(item_id, DISH_SHEET_SIZES, DISH_SHEET_RATIO, max_w=1200, phone_ratio=4 / 3)
 
 
-def nutri_caption(item: dict) -> str:
-    s = slices(item)
-    if s:
-        return f"Per whole 12″ pizza ({s} slices)"
-    return "Per " + e(item["portion"])
-
-
-def dish_detail(item: dict, cat: dict, root: str, level: int = 2) -> str:
-    n = ORDER_IDS.index(item["id"]) + 1
-    s = slices(item)
+def dish_detail(item: dict, cat: dict, root: str, level: int = 2, page: bool = False) -> str:
     h = f"h{level}"
+    sub = f"h{level + 1}"
     nut = item["nutrition"]
-    note = cat["tagline"].split(".")[0].strip().lower()
-    badge = f'<span class="stamp stamp--lg">{e(item["badge"])}</span>' if item.get("badge") else ""
-    sizes = "".join(f'<li class="size"><span>{e(p["label"].replace(chr(34), "″")) if p["label"] != "Regular" else "Price"}</span><b>{money(p["price"])}</b></li>'
+    pic = has_photo(item["id"])
+    kick = [e(cat["name"])] + diet_words(item)
+    sizes = "".join(f'<li><span class="dd__sl">{size_label(p["label"]) if p["label"] != "Regular" else "Price"}</span>'
+                    f'<span class="dd__dots" aria-hidden="true"></span><span class="dd__pr">{money(p["price"])}</span></li>'
                     for p in item["prices"])
-    pct = min(100, round(item["kcal"] / 20))
-    rows = []
-    for k, (dv, unit, label) in DV.items():
-        v = nut[k]
-        share = round(v / dv * 100)
-        rows.append(f'<tr><th scope="row">{label}</th><td class="nutri__v">{v:,} {unit}</td>'
-                    f'<td class="nutri__dv"><span class="bar" aria-hidden="true"><i style="--w:{min(100, share)}%"></i></span>{share}%</td></tr>')
-    whole_label = "whole 12″ pizza" if s else e(item["portion"])
-    per_slice = (f'<p class="kslice"><b>≈{round(item["kcal"] / s):,} kcal</b> per slice <span>({s} slices)</span></p>' if s else "")
-    contains = allergen_items(item["allergens"], "alg") or '<li class="alg alg--none">No priority allergens</li>'
-    may = allergen_items(item.get("may_contain", []), "alg") or '<li class="alg alg--none">Nothing listed</li>'
-    diets = f'<ul class="dd__diets">{diet_pills(item)}</ul>' if item.get("diet") else ""
-    sample = ('<p class="dd__fine">Sample menu: prices, calories and allergens are placeholders until the owner confirms them, '
-              'and the photo is a stock image.</p>' if MENU.get("sample") else "")
-    return f'''<article class="dd" data-dish-article="{item['id']}">
-  <figure class="dd__photo">
-    {construct_svg("dd__construct")}
-    <span class="dd__frame wash--{CAT_WASH[cat['id']]}">{img(item['id'], '(min-width: 980px) 440px, 92vw', 4 / 5, max_w=1000)}</span>
-    <span class="dd__note dd__note--1 hand" lang="it" aria-hidden="true">{e(cat['italian'])}</span>
-    <span class="dd__note dd__note--2 hand" aria-hidden="true">{e(note)}</span>
-    <span class="dd__fig" aria-hidden="true">Fig. {n}</span>{badge}
-  </figure>
+    cells = [("Calories", f'{item["kcal"]:,}', "kcal"), ("Protein", f'{nut["protein_g"]:,}', "g"),
+             ("Carbs", f'{nut["carbs_g"]:,}', "g"), ("Fat", f'{nut["fat_g"]:,}', "g"),
+             ("Sodium", f'{nut["sodium_mg"]:,}', "mg")]
+    nutri = "".join(f'<div><dt>{k}</dt><dd><b>{v}</b> <span>{u}</span></dd></div>' for k, v, u in cells)
+    ph = ""
+    credit = ""
+    if pic:
+        p = photo(item["id"])
+        ph = f'<figure class="dd__ph">{dish_photo(item["id"], page, eager=page)}</figure>'
+        credit = (f' The photo is a stock image by <a href="{e(PROFILES[p["author"]])}">{e(p["author"])}</a> on '
+                  f'<a href="{e(p["page"])}">Unsplash</a>, standing in until our own shoot.')
+    else:
+        credit = " Photo coming after our own shoot."
+    sample = (f'<p class="dd__fine">Sample menu: the price, calories and allergens are placeholders until Dough-Vinci '
+              f'confirms them.{credit}</p>' if MENU.get("sample") else (f'<p class="dd__fine">{credit.strip()}</p>' if pic else ""))
+    return f'''<article class="dd{'' if pic else ' dd--text'}" data-dish-article="{item['id']}">
+  {ph}
   <div class="dd__body">
-    <p class="dd__cat">{e(cat['name'])}</p>
-    <{h} class="dd__name" data-dish-title>{e(item['name'])}</{h}>
+    <p class="dd__kick">{'<span aria-hidden="true"> · </span>'.join(kick)}</p>
+    <{h} class="dd__name d" data-dish-title tabindex="-1">{e(item['name'])}</{h}>
     <p class="dd__short">{e(item['short'])}</p>
-    {diets}
-    <ul class="sizes" aria-label="Sizes and prices">{sizes}</ul>
-    <div class="dd__nut">
-      <div class="kring" style="--pct:{pct}">
-        <svg viewBox="0 0 120 120" aria-hidden="true" focusable="false"><circle cx="60" cy="60" r="52" class="kring__bg"/><circle cx="60" cy="60" r="52" class="kring__fg" pathLength="100"/><path class="kring__ticks" d="M60 2v8M60 110v8M2 60h8M110 60h8"/></svg>
-        <p><b>{item['kcal']:,}</b><span>kcal</span><span class="kring__of">{whole_label}</span></p>
-      </div>
-      <div class="dd__nut-r">
-        {per_slice}
-        <table class="nutri"><caption>{nutri_caption(item)}</caption>
-          <thead class="sr"><tr><th scope="col">Nutrient</th><th scope="col">Amount</th><th scope="col">Share of a day</th></tr></thead>
-          <tbody>{"".join(rows)}</tbody></table>
-        <p class="dd__dvnote">% of the daily value, on a 2,000-kcal day.</p>
-      </div>
-    </div>
-    <h{level + 1} class="dd__h">Ingredients</h{level + 1}>
-    <ol class="ingr">{"".join(f"<li>{e(x)}</li>" for x in item["ingredients"])}</ol>
-    <h{level + 1} class="dd__h">Allergens</h{level + 1}>
-    <div class="dd__alg">
-      <p class="dd__alg-l">Contains</p><ul class="algs algs--lg">{contains}</ul>
-      <p class="dd__alg-l">May contain</p><ul class="algs algs--lg algs--may">{may}</ul>
-    </div>
-    <p class="dd__xc">Shared kitchen: traces of any allergen are possible. <a href="{root}allergens/">Allergen guide</a></p>
+    <ul class="dd__sizes" aria-label="Sizes and prices">{sizes}</ul>
+    <a class="btn btn--red btn--big dd__order" href="#order" data-order>{icon("scooter")}<span>Order Now</span></a>
+    <{sub} class="dd__h">Ingredients</{sub}>
+    <p class="dd__ing">{e(", ".join(item["ingredients"])[0].upper() + ", ".join(item["ingredients"])[1:])}.</p>
+    <{sub} class="dd__h">Nutrition</{sub}>
+    <dl class="nutri">{nutri}</dl>
+    <p class="dd__basis">{e(basis_long(item))}. Estimates, not lab-tested.</p>
+    <{sub} class="dd__h">Allergens</{sub}>
+    <p class="dd__alg"><b>Contains:</b> {e(allergen_text(item["allergens"], "none of the major allergens"))}.</p>
+    <p class="dd__alg"><b>May contain:</b> {e(allergen_text(item.get("may_contain", []), "nothing beyond the shared-kitchen note below"))}.</p>
+    <p class="dd__fine">{e(MENU["allergen_note"])} <a href="{root}allergens/">Allergens for every dish</a></p>
     {sample}
-    <div class="dd__order"><p class="dd__from"><b>{price_from(item)}</b><span>{item['kcal']:,} kcal</span></p>
-      <a class="btn btn--order btn--lg" href="#order" data-order>{icon("i-bag")}<span>Order</span></a></div>
   </div>
 </article>'''
 
 
-def app_tiles(prefix: str) -> str:
-    tiles = []
-    for d in SITE["delivery"]:
-        tiles.append(f'<li><a class="app" href="{e(d["url"])}" target="_blank" rel="noopener" style="--brand:{e(d.get("color", "#B8432A"))}">'
-                     f'<span class="app__top"><span class="app__mark" aria-hidden="true">{e(d["name"][0])}</span>'
-                     f'<span class="app__name">{e(d["name"])}</span></span>'
-                     f'<span class="app__go">Order now {icon("i-ext", "ico ico--sm")}<span class="sr"> (opens in a new tab)</span></span></a></li>')
-    tiles.append(f'<li><a class="app app--call" href="tel:{tel()}"><span class="app__top"><span class="app__name">Call for pickup</span></span>'
-                 f'<span class="app__go">{icon("i-phone", "ico ico--sm")}{e(SITE["contact"]["phone"])}</span></a></li>')
-    return "".join(tiles)
+# ───────────────────────────────────────────────────────────── page parts
 
 
-def hours_rows() -> str:
-    rows = []
-    for h in SITE["hours"]:
-        rows.append(f'<tr data-days="{" ".join(h["days"])}"><th scope="row">{day_range(h["days"])}</th>'
-                    f'<td>{fmt_time(h["open"])} – {fmt_time(h["close"])}<span class="hours__today" hidden> · today</span></td></tr>')
-    return "".join(rows)
+NAV = [("Menu", "menu/"), ("About Us", "about/"), ("Contact", "contact/")]
 
 
-def combo_cards(root: str) -> str:
-    out = []
-    styles = {"bottega-for-two": "cheese", "smash-study": "basil", "famiglia": "tomato"}
-    kickers = {"bottega-for-two": "for two, the masterwork", "smash-study": "the classic study", "famiglia": "for the whole table"}
-    order = ["bottega-for-two", "smash-study", "famiglia"]
-    cmb = {c["id"]: c for c in MENU["combos"]}
-    for cid in order:
-        c = cmb[cid]
-        refs = c.get("photos", [])
-        if len(refs) >= 3:
-            art = (f'<span class="combo__pizza">{img(refs[0], "(min-width: 980px) 340px, 60vw", 1, max_w=800)}</span>'
-                   f'<span class="combo__burger">{img(refs[1], "(min-width: 980px) 200px, 34vw", 4 / 5, max_w=600)}</span>'
-                   f'<span class="combo__fries">{img(refs[2], "(min-width: 980px) 150px, 28vw", 1, max_w=400)}</span>'
-                   f'<span class="plus plus--1" aria-hidden="true">+</span><span class="plus plus--2" aria-hidden="true">+</span>')
-            art = f'<div class="combo__art">{art}</div>'
-        else:
-            art = f'<div class="combo__photo">{img(refs[0], "(min-width: 980px) 300px, 80vw", 4 / 3, max_w=800)}</div>'
-        items = "".join(f"<li>{e(x)}</li>" for x in c["contents"])
-        out.append(f'''<li class="combo combo--{styles[cid]}" style="--k:{len(out)}">
-  {art}
-  <div class="combo__txt">
-    <p class="combo__kicker hand">{e(kickers[cid])}</p>
-    <h3 class="combo__name">{e(c['name'])}</h3>
-    <ul class="combo__list">{items}</ul>
-    <a class="btn btn--order" href="#order" data-order>{icon("i-bag")}<span>Order</span></a>
+def header(root: str, current: str) -> str:
+    home = root or "./"
+    links = []
+    for label, href in NAV:
+        cur = ' aria-current="page"' if href == current else ""
+        links.append(f'<li><a href="{root}{href}"{cur}>{label}</a></li>')
+    pv = ('<span class="pv">Preview<span class="pv__more"> · the menu, prices, date and place are samples</span></span>'
+          if preview() else "")
+    home_cur = ' aria-current="page"' if current == "" else ""
+    return f'''<header class="top" data-top>
+  <a class="lock" href="{home}"{home_cur}>{wordmark()}<span class="lock__sub">Pizza &amp; Burger {tricolour("tri--lock")}</span><span class="sr">, home</span></a>
+  {pv}
+  <nav class="nav" aria-label="Main"><ul>{"".join(links)}<li class="nav__st">{status("short")}</li></ul></nav>
+  <a class="btn btn--red top__order" href="#order" data-order>{icon("scooter")}<span>Order Now</span></a>
+</header>'''
+
+
+def footer(root: str) -> str:
+    c = SITE["contact"]
+    apps = "".join(f'<li><a href="{e(d["url"])}" target="_blank" rel="noopener">{e(d["name"])}<span class="sr"> (opens in a new tab)</span></a></li>'
+                   for d in SITE["delivery"])
+    fine = ("Preview: the menu, prices, calories, allergens, halal details, location, phone, email, hours and opening "
+            "date are samples until Dough-Vinci confirms them. " if preview() else "")
+    authors = sorted({p["author"] for p in PHOTOS.values()})
+    return f'''<footer class="foot">
+  <p class="foot__strap d">{e(SITE["strap"])}</p>
+  <div class="foot__cols">
+    <div><h2 class="foot__h">Order</h2><ul class="foot__list">{apps}<li><a href="tel:{tel()}">Call for pickup</a></li></ul></div>
+    <div><h2 class="foot__h">Find us</h2><ul class="foot__list"><li>{e(c["address"])}</li><li><a href="tel:{tel()}">{e(c["phone"])}</a></li>
+      <li><a href="mailto:{e(c["email"])}">{e(c["email"])}</a></li><li><a href="{root}contact/#hours">Hours</a></li></ul></div>
+    <div><h2 class="foot__h">Dough-Vinci</h2><ul class="foot__list"><li><a href="{root}menu/">Menu</a></li><li><a href="{root}about/">About Us</a></li>
+      <li><a href="{root}contact/">Contact</a></li><li><a href="{root}allergens/">Allergens &amp; nutrition</a></li></ul></div>
+    <div class="foot__halal">{halal_mark("halal--foot")}<p>{e(SITE["halal"]["statement"])}</p></div>
   </div>
-  <p class="price-seal"><span class="price-seal__c">$</span>{e(c['price'])}</p>
-</li>''')
-    return "".join(out)
-
-
-def combos_section(root: str, level: int = 2) -> str:
-    return f'''<section class="combos page" id="combos" aria-labelledby="combos-title">
-  <span class="folio-mark" aria-hidden="true">f. 6r</span>
-  <header class="sec-head"><p class="kicker-s">Studies in pairs</p>
-    <h{level} class="sec-title" id="combos-title">Combos <em>&amp; deals</em></h{level}></header>
-  <ul class="combo-row" data-scroller>{combo_cards(root)}</ul>
-</section>'''
-
-
-def flying_band(root: str) -> str:
-    return f'''<section class="fly" id="order" aria-labelledby="order-title">
-  <div class="fly__in">
-    <div class="fly__sky" aria-hidden="true">
-      <div class="fly__machine" data-svg="{root}assets/art/flying-machine.svg"><img src="{root}assets/art/flying-machine.svg" alt="" width="1200" height="700" loading="lazy" decoding="async"></div>
-      <svg class="fly__trail" viewBox="0 0 1200 120" preserveAspectRatio="none"><path d="M0 90c140-40 260-56 400-40s250 40 380 18 260-60 420-50"/></svg>
-    </div>
-    <header class="fly__head">
-      <p class="kicker-s">Delivery or pickup</p>
-      <h2 class="fly__title" id="order-title">We fly it <em>to your door</em></h2>
-    </header>
-    <ul class="apps">{app_tiles("band")}</ul>
-    <p class="fly__note hand">{e(SITE.get("order_note", ""))}</p>
+  <p class="foot__wm d" aria-hidden="true">Dough<span class="wm__dash">-</span>Vinci</p>
+  <div class="foot__fine">
+    <p>{fine}Photos: {" and ".join(e(a) for a in authors)} on Unsplash, stock images until our own shoot (<a href="{root}credits/">credits</a>).</p>
+    <p class="mirror" aria-hidden="true">Dough-Vinci, Commercial Drive</p>
   </div>
-</section>'''
+</footer>'''
 
 
-def map_figure(root: str, small: bool = False) -> str:
-    mj = json.loads((NEW_ART / "map.json").read_text()) if (NEW_ART / "map.json").exists() else {"labels": {}, "winds": {}, "rotate": {}, "pin": [500, 500]}
-    labels = []
-    for name, (x, y) in mj.get("labels", {}).items():
-        rot = mj.get("rotate", {}).get(name, 0)
-        cls = "mlab mlab--park" if "Park" in name else ("mlab mlab--main" if name.startswith("Commercial") else "mlab")
-        # the drawing is shown mirrored (Grandview Park is on the west side of Commercial Drive), so x flips
-        labels.append(f'<li class="{cls}" style="--x:{(1000 - x) / 10:.1f}%;--y:{y / 10:.1f}%;--r:{rot}deg">{e(name)}</li>')
-    if not small:
-        for name, (x, y) in mj.get("winds", {}).items():
-            labels.append(f'<li class="mlab mlab--wind" lang="it" aria-hidden="true" style="--x:{x / 10:.1f}%;--y:{y / 10:.1f}%">{e(name)}</li>')
-    px, py = mj.get("pin", [500, 500])
-    addr = SITE["contact"].get("map_label") or SITE["contact"]["street"]
-    return f'''<figure class="imola{' imola--sm' if small else ''}">
-  <div class="imola__map">
-    <img class="imola__img" src="{root}assets/art/map.svg" alt="" width="1000" height="1000" loading="lazy" decoding="async">
-    <ul class="imola__labels" aria-label="Streets on the map">{"".join(labels)}</ul>
-    <p class="imola__here" style="--x:{(1000 - px) / 10:.1f}%;--y:{py / 10:.1f}%"><span class="hand">We’re here!</span> <span>{e(addr)}</span></p>
+def dialogs(root: str) -> str:
+    c = SITE["contact"]
+    links_note = (" The app links open each app’s home page until our own store pages are live."
+                  if preview() else "")
+    return f'''<dialog class="sheet sheet--order" id="order-dialog" aria-labelledby="order-dialog-title">
+  <div class="sheet__in os">
+    <button class="x" type="button" data-close><span class="sr">Close</span></button>
+    <h2 class="os__h d" id="order-dialog-title" tabindex="-1">Order Now</h2>
+    <p class="os__sub">{e(SITE.get("order_note", ""))}</p>
+    <p class="os__lbl">Delivery or pickup in the app</p>
+    <ul class="os__list">{apps_list("os")}</ul>
+    <p class="os__lbl">Pickup by phone</p>
+    <ul class="os__list"><li><a href="tel:{tel()}"><span class="os__name">Call for pickup</span><span class="os__tel">{e(c["phone"])} {sample_tag()}</span></a></li></ul>
+    <div class="os__foot">{halal_mark("halal--sheet")}<p>No payment on this site.{links_note}</p></div>
   </div>
-  <figcaption class="imola__cap">{e(SITE.get("map_caption", ""))}</figcaption>
-</figure>'''
+</dialog>
+<dialog class="sheet sheet--dish" id="dish-dialog" aria-labelledby="dish-dialog-title">
+  <div class="sheet__in">
+    <button class="x" type="button" data-close><span class="sr">Close</span></button>
+    <div data-dish-slot></div>
+  </div>
+</dialog>'''
 
 
-def golden_spiral() -> str:
-    """A logarithmic golden spiral (growth φ per quarter turn) for the construction overlay on the pizza photo."""
-    phi = (1 + 5 ** 0.5) / 2
-    b = math.log(phi) / (math.pi / 2)
-    cx, cy = 618, 382
-    pts = []
-    for i in range(0, 361):
-        t = -i / 360 * 4 * math.pi
-        r = 520 * math.exp(b * t)
-        pts.append((cx + r * math.cos(t + math.pi), cy + r * math.sin(t + math.pi)))
-    d = "M" + " L".join(f"{x:.1f} {y:.1f}" for x, y in pts)
-    return d
+def mbar() -> str:
+    return f'<div class="mbar" data-mbar><a class="btn btn--red" href="#order" data-order>{icon("scooter")}<span>Order Now</span></a></div>'
 
 
-SIGNATURES = SITE.get("signatures", [])
-
-
-def signature_cards(root: str) -> str:
-    out = []
-    for i, s in enumerate(SIGNATURES):
-        cat, it = ITEMS[s["id"]]
-        catname = "Smashburger" if cat["id"] == "smash" else cat["name"].rstrip("s") if cat["id"] != "pizza" else "Pizza"
-        out.append(f'''<li class="study" style="--k:{i}">
-  <a class="study__link" href="{root}menu/{it['id']}/" data-dish="{it['id']}">
-    <span class="study__fig" aria-hidden="true">Fig. {ORDER_IDS.index(it['id']) + 1}</span>
-    <span class="study__frame"><span class="tick tick--tl"></span><span class="tick tick--tr"></span><span class="tick tick--bl"></span><span class="tick tick--br"></span>
-      <span class="study__photo">{img(it['id'], '(min-width: 1180px) 290px, (min-width: 700px) 44vw, 74vw', 4 / 5, max_w=800, alt="", low=True)}</span></span>
-    <span class="study__note hand" aria-hidden="true">{e(s.get('note', ''))}</span>
-    <span class="study__cat">{e(catname)}</span>
-    <h3 class="study__name">{e(it['name'])}</h3>
-    <span class="study__meta"><b>{price_from(it)}</b>{kcal_chips(it)}</span>
-  </a>
-</li>''')
-    return "".join(out)
-
-
-def category_tiles(root: str) -> str:
-    """One tile per category. The photo is `home_tiles` in site.json, chosen so no photo repeats on the home page."""
-    out = []
-    picks = SITE.get("home_tiles", {})
-    for cat in CATS:
-        ref = picks.get(cat["id"]) or cat["items"][0]["id"]
-        out.append(f'''<li><a class="ctile wash--{CAT_WASH[cat['id']]}" href="{root}menu/#{cat['id']}">
-  <span class="tick tick--tl" aria-hidden="true"></span><span class="tick tick--br" aria-hidden="true"></span>
-  <span class="ctile__photo">{img(ref, '(min-width: 1180px) 240px, (min-width: 700px) 30vw, 44vw', 1, max_w=600, alt="", low=True)}</span>
-  <span class="ctile__it" lang="it" aria-hidden="true">{e(cat['italian'])}</span>
-  <span class="ctile__name">{e(cat['name'])}</span><span class="ctile__n">{len(cat['items'])} dishes</span></a></li>''')
-    return "".join(out)
-
-
-BURGER_LABELS = [("crown", "a", "toasted potato bun"), ("pickles", "b", "pickles & house sauce"),
-                 ("cheese-top", "c", "American cheese"), ("patty-top", "d", "smashed thin"),
-                 ("cheese-low", "e", "melted cheese"), ("patty-low", "f", "crispy lace edge"), ("heel", "g", "toasted heel")]
-
-
-def burger_labels() -> tuple[str, str]:
-    bj = json.loads((ART / "burger-study.json").read_text())
-    marks, legend = [], []
-    for layer, letter, label in BURGER_LABELS:
-        x, y = bj["anchors"][layer]
-        dy = bj["explode"][layer]
-        marks.append(f'<li class="blab" style="--y:{y / 10:.1f};--dy:{dy / 10:.2f}"><span class="blab__l">{letter}</span><span class="blab__t">{e(label)}</span></li>')
-        legend.append(f'<li><span class="blab__l" aria-hidden="true">{letter}</span>{e(label)}</li>')
-    return "".join(marks), "".join(legend)
-
-
-PIZZA_NOTES = [("crust", "golden rim", "r"), ("cheese", "melted mozzarella", "r"), ("sauce", "tomato sauce", "l")]
-
-
-def pizza_notes() -> str:
-    pj = json.loads((ART / "pizza-study.json").read_text())
-    out = []
-    for a, t, side in PIZZA_NOTES:
-        x, y = pj["anchors"][a]
-        out.append(f'<li class="pnote pnote--{side}" style="--x:{x / 10:.1f};--y:{y / 10:.1f}"><span class="hand">{e(t)}</span></li>')
-    return "".join(out)
-
-
-def faq() -> str:
-    """`{opening}` in an answer becomes the opening date, so the FAQ and the pills never disagree."""
-    od = opening()
-    when = f"{od:%A}, {od:%B} {od.day}" if od else "a date we will post here soon"
-    return "".join(f'<details class="faq__q"><summary>{e(q["q"])}</summary><p>{e(q["a"].replace("{opening}", when))}</p></details>'
-                   for q in SITE["faq"])
-
-
-def allergen_matrix(root: str) -> str:
-    head = "".join(f'<th scope="col" class="mx__h"><span class="mx__hin">{icon("a-" + k)}<span>{ALLERGENS[k]}</span></span></th>'
-                   for k in MENU["allergen_keys"])
-    groups = []
-    for cat in CATS:
-        rows = [f'<tr class="mx__cat"><th scope="rowgroup" colspan="{len(MENU["allergen_keys"]) + 2}">{e(cat["name"])} <span lang="it">{e(cat["italian"])}</span></th></tr>']
-        for it in cat["items"]:
-            cells = []
-            for k in MENU["allergen_keys"]:
-                if k in it["allergens"]:
-                    cells.append('<td class="mx__c mx__c--yes"><span aria-hidden="true">●</span><span class="sr">Contains</span></td>')
-                elif k in it.get("may_contain", []):
-                    cells.append('<td class="mx__c mx__c--may"><span aria-hidden="true">○</span><span class="sr">May contain</span></td>')
-                else:
-                    cells.append('<td class="mx__c mx__c--no"><span aria-hidden="true">·</span><span class="sr">No</span></td>')
-            s = slices(it)
-            kc = f'{it["kcal"]:,}' + (f'<span class="mx__slice"> · {round(it["kcal"] / s):,}/slice</span>' if s else "")
-            rows.append(f'<tr><th scope="row" class="mx__dish"><a href="{root}menu/{it["id"]}/" data-dish="{it["id"]}">{e(it["name"])}</a></th>{"".join(cells)}<td class="mx__k">{kc}</td></tr>')
-        groups.append(f'<tbody>{"".join(rows)}</tbody>')
-    cols = '<col class="mx__col-dish">' + '<col>' * len(MENU["allergen_keys"]) + '<col class="mx__col-k">'
-    return f'''<table class="mx">
-  <caption class="sr">Allergens and calories of every dish</caption>
-  <colgroup>{cols}</colgroup>
-  <thead><tr><th scope="col" class="mx__dish">Dish</th>{head}<th scope="col" class="mx__k">kcal</th></tr></thead>
-  {"".join(groups)}
-</table>'''
-
-
-def about_studies() -> str:
-    studies = [("ing-flour", "farina"), ("ing-tomato", "pomodoro"), ("ing-basil", "basilico"),
-               ("atmo-griddle", "smashed thin"), ("ing-mozzarella", "mozzarella"), ("ing-cheesepull.alternate", "the pull")]
-    out = []
-    for i, (ref, note) in enumerate(studies):
-        it = ' lang="it"' if note in ("farina", "pomodoro", "basilico", "mozzarella") else ""
-        out.append(f'<li class="astudy" style="--k:{i}"><span class="astudy__ph">{img(ref, "(min-width: 980px) 300px, 44vw", 4 / 5, max_w=800)}</span>'
-                   f'<span class="astudy__note hand"{it}>{e(note)}</span></li>')
-    return "".join(out)
-
-
-def credits() -> str:
-    rows = []
-    for d in sorted(USED_PHOTOS.values(), key=lambda d: d["author"].lower()):
-        rows.append(f'<li><a href="{e(d["page"])}" target="_blank" rel="noopener">{e(d["alt"])}<span class="sr"> (opens in a new tab)</span></a> <span class="credits__by">by {e(d["author"])}</span></li>')
-    return "".join(rows)
-
-
-# ───────────────────────────────────────────────────────────── JSON-LD, meta
+# ───────────────────────────────────────────────────────────── JSON-LD, page data
 
 
 def jsonld() -> str:
-    """While `preview` is on, only what is true today: the name, the idea and the city. The phone, hours, price range
-    and street address are samples, so they join the markup only when the preview is switched off."""
+    """While `preview` is on, only what is true today: the name, the idea and the city. The phone, hours and street
+    address are samples, so they join the markup only when the preview is switched off. No Menu markup while the menu
+    is a sample."""
     c = SITE["contact"]
-    names = {"mon": "Monday", "tue": "Tuesday", "wed": "Wednesday", "thu": "Thursday", "fri": "Friday", "sat": "Saturday", "sun": "Sunday"}
     ld = {
         "@context": "https://schema.org", "@type": "Restaurant", "name": SITE["name"],
         "url": SITE["base_url"], "image": SITE["base_url"] + "og.png", "logo": SITE["base_url"] + "apple-touch-icon.png",
@@ -715,13 +669,13 @@ def jsonld() -> str:
         "address": {"@type": "PostalAddress", "addressLocality": c["city"], "addressRegion": c.get("region", "BC"),
                     "addressCountry": "CA"},
     }
-    if not SITE.get("preview"):
+    if not preview():
         ld["telephone"] = tel()
         if c.get("street_address"):
             ld["address"]["streetAddress"] = c["street_address"]
         if c.get("postal_code"):
             ld["address"]["postalCode"] = c["postal_code"]
-        ld["openingHoursSpecification"] = [{"@type": "OpeningHoursSpecification", "dayOfWeek": [names[d] for d in h["days"]],
+        ld["openingHoursSpecification"] = [{"@type": "OpeningHoursSpecification", "dayOfWeek": [DAY_LONG[d] for d in h["days"]],
                                             "opens": h["open"], "closes": h["close"]} for h in SITE["hours"]]
     if not MENU.get("sample"):
         ld["hasMenu"] = SITE["base_url"] + "menu/"
@@ -730,7 +684,7 @@ def jsonld() -> str:
 
 def page_data() -> str:
     d = {"tz": SITE.get("timezone"), "opening": SITE.get("opening_date") or "", "hours": SITE["hours"],
-         "street": SITE["contact"]["street"], "preview": bool(SITE.get("preview")), "allergens": ALLERGENS, "diets": DIETS}
+         "preview": preview()}
     return '<script type="application/json" id="dv-data">' + json.dumps(d, ensure_ascii=False, separators=(",", ":")) + "</script>"
 
 
@@ -764,227 +718,252 @@ def write(rel: str, data: str | bytes) -> None:
     WRITTEN.add(path.resolve())
 
 
-NAV = [("Menu", "menu/"), ("Combos", "menu/#combos"), ("Allergens", "allergens/"), ("Visit", "visit/"), ("About", "about/")]
-
-
-def header(root: str, current: str) -> str:
-    cur = ' aria-current="page"'
-    links = "".join(f'<a href="{root}{href}"{cur if href == current else ""}>{label}</a>' for label, href in NAV)
-    home = root or "./"
-    preview = ('<span class="preview-tag" title="A preview: menu, prices and details are samples">Preview</span>'
-               if SITE.get("preview") else "")
-    return f'''<header class="top" data-top>
-  <div class="top__in">
-    <a class="brand" href="{home}"><img class="brand__mark" src="{root}favicon.svg" alt="" width="44" height="44"><span class="brand__word">Dough<span class="brand__dash">-</span>Vinci</span></a>
-    {preview}
-    <nav class="nav" aria-label="Main">{links}</nav>
-    {status_html("short")}
-    <a class="btn btn--order top__order" href="#order" data-order>{icon("i-bag")}<span>Order</span></a>
-  </div>
-</header>'''
-
-
-def dock(root: str) -> str:
-    items = [("Menu", "menu/", "i-slice"), ("Allergens", "allergens/", "a-wheat"), ("Visit", "visit/", "i-pin")]
-    links = "".join(f'<a class="dock__link" href="{root}{href}">{icon(ic)}<span>{label}</span></a>' for label, href, ic in items)
-    return f'''<nav class="dock" aria-label="Quick links">{links}<a class="btn btn--order dock__order" href="#order" data-order>{icon("i-bag")}<span>Order</span></a></nav>'''
-
-
-def footer(root: str) -> str:
-    c = SITE["contact"]
-    apps = "".join(f'<li><a href="{e(d["url"])}" target="_blank" rel="noopener">{e(d["name"])}<span class="sr"> (opens in a new tab)</span></a></li>' for d in SITE["delivery"])
-    fine = ("Preview: the menu, prices, calories, allergens, location, phone, hours and opening date are samples until "
-            "Dough-Vinci confirms them, and the photos are stock images, not our dishes. " if SITE.get("preview") else "")
-    strap = e(SITE.get("strap", ""))
-    return f'''<footer class="foot">
-  <img class="foot__water" src="{root}assets/art/pizza-lines.svg" alt="" width="1000" height="1000" loading="lazy" decoding="async">
-  <div class="foot__in">
-    <p class="foot__word">Dough<span>-</span>Vinci</p>
-    <p class="foot__tag">Real Pizza. Real Smashburgers. <span class="hand">Made with Passion.</span></p>
-    <p class="mirror foot__mirror"><span class="sr">{strap}</span><span class="mirror__in hand" aria-hidden="true">{strap}</span></p>
-    <div class="foot__cols">
-      <div><h2 class="foot__h">Order</h2><ul class="foot__list">{apps}<li><a href="tel:{tel()}">Call for pickup</a></li></ul></div>
-      <div><h2 class="foot__h">Visit</h2><ul class="foot__list"><li>{e(c["address"])}</li><li><a href="tel:{tel()}">{e(c["phone"])}</a></li><li><a href="{root}visit/">Hours &amp; map</a></li></ul></div>
-      <div><h2 class="foot__h">Eat well</h2><ul class="foot__list"><li><a href="{root}menu/">Menu</a></li><li><a href="{root}allergens/">Allergens &amp; nutrition</a></li><li><a href="{root}about/">About &amp; photo credits</a></li></ul></div>
-    </div>
-    <div class="foot__fine"><p>{fine}Photos from <a href="{root}about/#credits">Unsplash</a>.</p>
-      <button class="motion-btn" type="button" data-motion aria-pressed="false">{icon("i-pause", "ico ico--sm")}<span data-motion-label>Pause motion</span></button></div>
-  </div>
-</footer>'''
-
-
-def dialogs(root: str) -> str:
-    return f'''<dialog class="sheet sheet--order" id="order-dialog" aria-labelledby="order-dialog-title">
-  <div class="sheet__card">
-    <form method="dialog" class="sheet__x-f"><button class="sheet__x" type="submit" aria-label="Close" autofocus>{icon("i-close")}</button></form>
-    <img class="sheet__fly" src="{root}assets/art/flying-machine.svg" alt="" width="1200" height="700" loading="lazy" decoding="async">
-    <p class="kicker-s">Delivery or pickup</p>
-    <h2 class="sheet__title" id="order-dialog-title">Order</h2>
-    <ul class="apps apps--sheet">{app_tiles("dlg")}</ul>
-    <p class="sheet__line hand">{e(SITE.get("order_note", ""))}</p>
-  </div>
-</dialog>
-<dialog class="sheet sheet--dish" id="dish-dialog" aria-labelledby="dish-dialog-title">
-  <div class="sheet__card">
-    <form method="dialog" class="sheet__x-f"><button class="sheet__x" type="submit" aria-label="Close" autofocus>{icon("i-close")}</button></form>
-    <div data-dish-slot></div>
-  </div>
-</dialog>'''
-
-
-def page(rel: str, *, title: str, description: str, main: str, current: str = "", body_class: str = "",
-         head_extra: str = "", jsonld_on: bool = False, is_404: bool = False) -> None:
+def page(rel: str, *, title: str, description: str, main: str, current: str | None = None, body_class: str = "",
+         head_extra: str = "", jsonld_on: bool = False, is_404: bool = False, band_level: int = 2) -> None:
     depth = rel.count("/")
     # GitHub Pages serves 404.html at any missing address, so its links start from the site root. No <base>: with one,
     # the skip link and the #order links would resolve to the home page instead of staying on this page.
     root = SITE["base_path"] if is_404 else "../" * depth
     url_path = "" if rel == "index.html" else rel.replace("index.html", "")
     canonical = SITE["base_url"] + url_path
-    robots = '<meta name="robots" content="noindex, nofollow">' if SITE.get("preview") or not SITE.get("index") else ""
+    robots = '<meta name="robots" content="noindex, nofollow">' if preview() or not SITE.get("index") else ""
     full_title = title if title.startswith(SITE["name"]) else f"{title} · {SITE['name']}"
-    og = SITE["base_url"] + "og.png"
+    band = "" if body_class == "home" else order_band(band_level)
     doc = fill(tpl("base.html"), {
         "title": e(full_title), "description": e(description), "robots": robots,
-        "canonical": e(canonical), "og_image": e(og), "og_title": e(full_title), "og_url": e(canonical),
-        "site_name": e(SITE["name"]), "root": root, "fonts": e(FONTS), "css_v": ASSET_V["site.css"],
-        "js_v": ASSET_V["site.js"], "head_extra": head_extra, "jsonld": jsonld() if jsonld_on else "",
-        "data": page_data(), "sprite": "<!--SPRITE-->", "header": header(root, current), "main": main,
-        "order_band": flying_band(root), "footer": footer(root), "dock": dock(root), "dialogs": dialogs(root),
-        "body_class": body_class, "lang": SITE.get("lang", "en"),
+        "canonical": e(canonical), "og_image": e(SITE["base_url"] + "og.png"), "og_title": e(full_title),
+        "og_alt": e(OG_ALT),
+        "og_url": e(canonical), "site_name": e(SITE["name"]), "root": root, "fonts": e(FONTS),
+        "fonts_accent": e(FONTS_ACCENT), "css_v": ASSET_V["site.css"], "js_v": ASSET_V["site.js"],
+        "head_extra": head_extra, "jsonld": jsonld() if jsonld_on else "", "data": page_data(),
+        "header": header(root, current if current is not None else "-"), "main": main, "order_band": band,
+        "footer": footer(root), "mbar": mbar(), "dialogs": dialogs(root), "body_class": body_class,
+        "lang": SITE.get("lang", "en"),
     })
-    extra = DISH_ICONS if "data-dish=" in doc else set()
-    doc = doc.replace("<!--SPRITE-->", sprite_for(doc, extra), 1)
     write(rel, doc)
 
 
 # ───────────────────────────────────────────────────────────── pages
 
+# the share image (tools/render_images.py)
+OG_ALT = ("Dough-Vinci Pizza & Burger: «Real Pizza. Real Smashburgers. Made with Passion.» beside a margherita and a "
+          "smashburger close-up, with the halal mark.")
+HERO_SIZES = "(min-width: 900px) 30vw, 50vw"
+HERO_RATIO = 2 / 3
+
 
 def build_home() -> None:
     root = ""
-    # slot widths as laid out: the pizza is 71% of the stage (620px, 470px on tablets, 92% of a phone's column)
-    hero_sizes = "(min-width: 1000px) 460px, (min-width: 600px) 340px, 60vw"
-    burger_sizes = "(min-width: 1000px) 200px, (min-width: 600px) 160px, 28vw"
-    marks, legend = burger_labels()
-    diet_f, avoid_f = filter_chips()
+    od = opening()
+    c = SITE["contact"]
+    when = f"Opening {opening_long(od)}" if od and TODAY < od else "Now open"
+    hero = SITE["hero"]
+    tiles = []
+    for sid in SITE.get("signatures", []):
+        cat, it = ITEMS[sid]
+        p = it["prices"][0]
+        lab = (size_label(p["label"]) + " ") if len(it["prices"]) > 1 else ""
+        tiles.append(f'''<li class="tile rv"><a href="{root}menu/{sid}/" data-dish="{sid}">
+  <span class="ph">{img(sid, "(min-width: 900px) 25vw, 50vw", 4 / 5, alt="", max_w=1000)}</span>
+  <span class="tile__cap"><span class="tile__name">{e(it['name'])}</span><span class="tile__p">{lab}{money(p['price'])}</span></span>
+</a></li>''')
     main = fill(tpl("home.html"), {
         "root": root,
-        "status_long": status_html("long"),
-        "hero_pizza": img("hero-pizza", hero_sizes, 1, eager=True, max_w=1200,
-                          alt="Margherita pizza seen from above: tomato, melted mozzarella and torn basil on a leopard-spotted crust"),
-        "hero_burger": img("hero-burger", burger_sizes, 4 / 5, eager=False, max_w=600, low=True),
-        "title_1": e(SITE["hero"]["title_lines"][0]).replace("Real ", ""),
-        "title_2": e(SITE["hero"]["title_lines"][1]).replace("Real ", ""),
-        "sub": e(SITE["hero"]["sub"]),
-        "pillars": "".join(f"<li>{icon(i)}{e(p)}</li>" for p, i in zip(SITE["pillars"], ["d-vegetarian", "a-wheat", "i-gear"])),
-        "signatures": signature_cards(root),
-        # the drawing is The Vitruvian (pepperoni, mushroom, pepper, onion), so the photo under it is that pizza
-        "wipe_photo": img("vitruvian", "(min-width: 600px) 360px, 60vw", 1, max_w=800, crop=(0.47, 0.56, 1.9), low=True),
-        "spiral": golden_spiral(),
-        "pizza_notes": pizza_notes(),
-        "burger_marks": marks, "burger_legend": legend,
-        "griddle": img("atmo-griddle", "(min-width: 681px) 170px, 40vw", 4 / 5, max_w=600, low=True),
-        "tiles": category_tiles(root),
-        "combos": combos_section(root),
-        "map": map_figure(root, small=True),
-        "address": e(SITE["contact"]["address"]),
-        "cross": e(SITE["contact"].get("neighbourhood", "")),
-        "maps": e(SITE["contact"]["maps_url"]),
-        "hours": hours_rows(),
-        "phone": e(SITE["contact"]["phone"]), "tel": tel(),
+        "tag": f'{halal_mark("halal--tag")}<span class="tag__t">{e(when)} · {e(c["street"])}</span>{sample_tag()}',
+        "title_1": e(hero["title_lines"][0]), "title_2": e(hero["title_lines"][1]),
+        "sub": e(hero["sub"]),
+        "line": e(" ".join(p + "." for p in SITE["pillars"])),
+        "btn_order": e(hero["buttons"]["order"]), "btn_menu": e(hero["buttons"]["menu"]),
+        "scooter": icon("scooter"), "arrow": icon("arrow", "ico ico--sm"),
+        "hero_pizza": img("hero-pizza", HERO_SIZES, HERO_RATIO, eager=True, max_w=1200, alt=""),
+        "hero_burger": img("hero-burger", HERO_SIZES, HERO_RATIO, eager=True, max_w=1200, alt=""),
+        "pizza_alt": e(photo("hero-pizza")["alt"]), "burger_alt": e(photo("hero-burger")["alt"]),
+        "pizza_from": from_price(ITEMS["mona-lisa"][0]), "smash_from": from_price(ITEMS["original-smash"][0]),
+        "tri": tricolour("tri--hero"),
+        "order_band": order_band(2),
+        "tiles": "".join(tiles),
+        "combos": combos_html(2, True, root),
+        "leonardo": leonardo("p"),
+        "halal": halal_mark("halal--big"),
+        "halal_statement": halal_statement(),
+        "where": e(c["map_label"]), "hood": e(c["neighbourhood"]), "city": e(c["city"]),
+        "status": status("long"), "maps": e(c["maps_url"]), "tel": tel(), "phone": e(c["phone"]),
+        "smp": sample_tag("Sample location and hours"),
     })
-    page("index.html", title=SITE["title"], description=SITE["description"], main=main, body_class="home",
-         head_extra=preload("hero-pizza", hero_sizes, 1, max_w=1200), jsonld_on=True)
+    page("index.html", title=SITE["title"], description=SITE["description"], main=main, current="", body_class="home",
+         head_extra=preload("hero-pizza", HERO_SIZES, HERO_RATIO, max_w=1200), jsonld_on=True)
 
 
 def build_menu() -> None:
     root = "../"
-    diet_f, avoid_f = filter_chips()
+    filters = "".join(f'<button class="tog" type="button" aria-pressed="false" data-filter="{k}">{label}</button>' for k, label in FILTERS)
+    tabs = "".join(f'<li><a href="#{c["id"]}" data-tab="{c["id"]}">{e(c["name"])}</a></li>' for c in CATS)
+    tabs += '<li><a href="#combos" data-tab="combos">Combos</a></li>'
+    note = (f'<p class="mhead__note">{e(MENU["note"])} Prices in CAD.</p>' if MENU.get("sample")
+            else '<p class="mhead__note">Prices in CAD.</p>')
     main = fill(tpl("menu.html"), {
-        "root": root, "tabs": category_tabs(), "diet_filters": diet_f, "avoid_filters": avoid_f,
-        "sections": menu_sections(root), "combos": combos_section(root),
-        "note": e(MENU.get("note", "")) if MENU.get("sample") else "",
-        "count": sum(len(c["items"]) for c in CATS),
-        "warn": ('<p class="warn warn--sm" role="note">' + icon("i-warn", "ico warn__i") +
-                 '<span><b>Sample menu.</b> Allergens and calories are placeholders, not for dietary decisions.</span></p>')
-                if MENU.get("sample") else "",
+        "root": root, "tabs": tabs, "filters": filters, "note": note,
+        "sections": menu_sections(root), "combos": combos_html(2, False, root),
+        "combo_order": icon("scooter"), "count": len(ORDER_IDS),
+        "allergen_note": e(MENU["allergen_note"]),
     })
-    page("menu/index.html", title="Menu", description="Pizzas, smashburgers, sides, desserts and drinks at Dough-Vinci, "
-         "with prices, calories and allergens for every dish.", main=main, current="menu/", body_class="menu-page")
+    page("menu/index.html", title="Menu", description="Pizza, smashburgers, sides, desserts and drinks at Dough-Vinci, "
+         "with prices, calories and allergens for every dish." + (" Sample menu." if MENU.get("sample") else ""),
+         main=main, current="menu/", body_class="menu-page", head_extra=menu_preload())
     for cat in CATS:
         for it in cat["items"]:
             r = "../../"
-            main = f'''<div class="dish-page page">
-  <p class="crumbs"><a href="{r}menu/#{cat['id']}">{icon("i-arrow", "ico ico--back")}Menu</a> <span aria-hidden="true">/</span> {e(cat['name'])}</p>
-  {dish_detail(it, cat, r, level=1)}
+            main = f'''<div class="dish-page" data-hero>
+  <p class="crumbs"><a href="{r}menu/#{cat['id']}">{icon("back", "ico ico--sm")}<span>Menu</span></a> <span aria-hidden="true">/</span> {e(cat['name'])}</p>
+  {dish_detail(it, cat, r, level=1, page=True)}
 </div>'''
-            desc = f"{it['name']}: {it['short']} {price_from(it)}, {it['kcal']:,} kcal."
+            ps = ", ".join((p["label"].replace('"', "-inch") + " " if p["label"] != "Regular" else "") + money(p["price"]) for p in it["prices"])
+            desc = f"{it['name']}: {it['short']} {ps}, {it['kcal']:,} kcal {basis(it).replace('″', '-inch')}."
+            if MENU.get("sample"):
+                desc += " Sample menu."
+            extra = preload(it["id"], DISH_PAGE_SIZES, 4 / 5, max_w=1200, phone_ratio=4 / 3) if has_photo(it["id"]) else ""
             page(f"menu/{it['id']}/index.html", title=it["name"], description=desc, main=main, current="menu/",
-                 body_class="dish-page-body")
-
-
-DISH_ICONS: set[str] = set()
+                 body_class="dish-page-body", head_extra=extra)
 
 
 def build_dish_fragments() -> None:
-    frags = []
+    frags = [f'<template data-dish="{it["id"]}">{dish_detail(it, cat, "__ROOT__", level=2)}</template>'
+             for cat in CATS for it in cat["items"]]
+    write("assets/dishes.html", '<!doctype html><meta charset="utf-8"><meta name="robots" content="noindex">'
+          "<title>Dish sheets</title>\n" + "\n".join(frags))
+
+
+def allergen_table(root: str) -> str:
+    keys = MENU["allergen_keys"]
+    head = "".join(f'<th scope="col">{ALLERGENS[k]}</th>' for k in keys)
+    groups = []
     for cat in CATS:
+        rows = [f'<tr class="mx__cat"><th scope="colgroup" colspan="{len(keys) + 2}">{e(cat["name"])}</th></tr>']
         for it in cat["items"]:
-            frags.append(f'<template data-dish="{it["id"]}">{dish_detail(it, cat, "__ROOT__", level=2)}</template>')
-    text = "\n".join(frags)
-    DISH_ICONS.update(re.findall(r'<use href="#([^"]+)"', text))
-    write("assets/dishes.html", "<!doctype html><meta charset=\"utf-8\"><meta name=\"robots\" content=\"noindex\"><title>Dish sheets</title>\n" + text)
+            cells = []
+            for k in keys:
+                if k in it["allergens"]:
+                    cells.append('<td class="mx__c is-yes"><span aria-hidden="true">●</span><span class="sr">Contains</span></td>')
+                elif k in it.get("may_contain", []):
+                    cells.append('<td class="mx__c is-may"><span aria-hidden="true">○</span><span class="sr">May contain</span></td>')
+                else:
+                    cells.append('<td class="mx__c is-no"><span class="sr">No</span></td>')
+            rows.append(f'<tr class="mx__row"><th scope="row" class="mx__dish"><a href="{root}menu/{it["id"]}/" data-dish="{it["id"]}">{e(it["name"])}</a></th>'
+                        f'{"".join(cells)}<td class="mx__k"><b>{it["kcal"]:,}</b> <span>{basis(it)}</span></td></tr>')
+        groups.append(f'<tbody>{"".join(rows)}</tbody>')
+    return f'''<div class="mx-wrap"><table class="mx">
+  <caption class="sr">Allergens and calories of every dish</caption>
+  <thead><tr><th scope="col" class="mx__dish">Dish</th>{head}<th scope="col" class="mx__k">Calories</th></tr></thead>
+  {"".join(groups)}
+</table></div>'''
+
+
+def allergen_list(root: str) -> str:
+    out = []
+    for cat in CATS:
+        items = []
+        for it in cat["items"]:
+            items.append(f'''<li class="al__i"><a class="al__name" href="{root}menu/{it['id']}/" data-dish="{it['id']}">{e(it['name'])}</a>
+  <p class="al__k"><b>{it['kcal']:,} kcal</b> {basis(it)}</p>
+  <p><b>Contains:</b> {e(allergen_text(it['allergens'], 'none of the major allergens'))}</p>
+  <p><b>May contain:</b> {e(allergen_text(it.get('may_contain', []), 'nothing listed'))}</p></li>''')
+        out.append(f'<section class="al__cat" aria-labelledby="al-{cat["id"]}"><h2 class="al__h d" id="al-{cat["id"]}">{e(cat["name"])}</h2><ul>{"".join(items)}</ul></section>')
+    return f'<div class="al">{"".join(out)}</div>'
 
 
 def build_allergens() -> None:
     root = "../"
-    keys = "".join(f'<li>{icon("a-" + k)}<span>{ALLERGENS[k]}</span></li>' for k in MENU["allergen_keys"])
-    warn = ('<div class="warn" role="note">' + icon("i-warn", "ico warn__i") +
-            '<p><b>Sample data, not for dietary decisions.</b> The dishes, allergens and calories below are placeholders '
-            'until Dough-Vinci confirms its real recipes.</p></div>') if MENU.get("sample") else ""
-    main = fill(tpl("allergens.html"), {"root": root, "warn": warn, "matrix": allergen_matrix(root),
-                                        "note": e(MENU["allergen_note"]), "keys": keys})
+    warn = ('<p class="warn"><b>Sample data, not for dietary decisions.</b> The dishes, allergens and calories below are '
+            'placeholders until Dough-Vinci confirms its real recipes.</p>') if MENU.get("sample") else ""
+    main = fill(tpl("allergens.html"), {"root": root, "warn": warn, "table": allergen_table(root),
+                                        "list": allergen_list(root), "note": e(MENU["allergen_note"])})
     page("allergens/index.html", title="Allergens & nutrition", description="Every Dough-Vinci dish against the eleven "
-         "priority allergens, with calories for the whole dish and per slice.", main=main, current="allergens/",
+         "priority allergens, with the calories of each dish and what they are for.", main=main, current="allergens/",
          body_class="allergens-page")
 
 
-def build_visit() -> None:
+def faq() -> str:
+    """`{opening}` in an answer becomes the opening date, so the FAQ and the status never disagree."""
+    od = opening()
+    when = f"{od:%A}, {od:%B} {od.day}" if od else "a date we will post here soon"
+    return "".join(f'<details class="faq__q"><summary>{e(q["q"])}</summary><p>{e(q["a"].replace("{opening}", when))}</p></details>'
+                   for q in SITE["faq"])
+
+
+def build_contact() -> None:
     root = "../"
     c = SITE["contact"]
-    main = fill(tpl("visit.html"), {
-        "root": root, "status_long": status_html("long"), "address": e(c["address"]), "cross": e(c.get("neighbourhood", "")),
-        "maps": e(c["maps_url"]), "hours": hours_rows(), "phone": e(c["phone"]), "tel": tel(), "email": e(c["email"]),
-        "map": map_figure(root), "faq": faq(), "catering_title": e(SITE["catering"]["title"]),
-        "catering_text": e(SITE["catering"]["text"]),
+    h = SITE["halal"]
+    cert = (f'<p class="hb__cert">Certified by {e(h["certifier"])}.</p>' if h.get("certifier") else "")
+    main = fill(tpl("contact.html"), {
+        "root": root, "where": e(c["map_label"]), "address": e(c["address"]), "hood": e(c["neighbourhood"]),
+        "status": status("long"), "hours": hours_table(), "maps": e(c["maps_url"]), "tel": tel(),
+        "phone": e(c["phone"]), "email": e(c["email"]), "pin": icon("pin"), "phone_i": icon("phone"),
+        "mail_i": icon("mail"),
+        "photo": img("mona-lisa", "(min-width: 900px) 50vw, 100vw", 4 / 5, max_w=1200, eager=True, high=False, phone_ratio=4 / 3),
+        "smp": sample_tag("Sample location, phone and hours"),
+        "halal": halal_mark("halal--big"), "halal_statement": halal_statement(), "cert": cert,
+        "halal_detail": e(h.get("detail", "")) + (" " + sample_tag("Sample details") if preview() else ""),
+        "faq": faq(), "catering_title": e(SITE["catering"]["title"]), "catering_text": e(SITE["catering"]["text"]),
     })
-    page("visit/index.html", title="Visit", description=f"Dough-Vinci on {c['address']}: hours, map, directions, "
-         "phone, FAQ and catering.", main=main, current="visit/", body_class="visit-page", jsonld_on=True)
+    page("contact/index.html", title="Contact", description="Hours, directions, phone and email for Dough-Vinci on "
+         f"{c['street']}, {c['city']}, with our halal statement and answers to common questions.", main=main, current="contact/",
+         body_class="contact-page", jsonld_on=True)
 
 
-def about_title() -> str:
-    first, _, rest = SITE["about"]["title"].partition(". ")
-    return e(first + ".") + (f" <em>{e(rest)}</em>" if rest else "")
+def credits() -> str:
+    rows = []
+    for d in sorted(USED_PHOTOS.values(), key=lambda d: (d["author"].lower(), d["key"])):
+        rows.append(f'<li><a href="{e(d["page"])}" target="_blank" rel="noopener">{e(d["alt"])}<span class="sr"> (opens in a new tab)</span></a>'
+                    f' <span class="cr__by">by <a href="{e(PROFILES[d["author"]])}" target="_blank" rel="noopener">{e(d["author"])}<span class="sr"> (opens in a new tab)</span></a></span></li>')
+    L = SITE["leonardo"]
+    rows.append(f'<li><a href="{e(L["page"])}" target="_blank" rel="noopener">{e(L["alt"])}<span class="sr"> (opens in a new tab)</span></a>'
+                f' <span class="cr__by">{e(L["credit"])}</span></li>')
+    return "".join(rows)
 
 
-def build_about() -> str:
+def license_link() -> str:
+    """«Unsplash License (https://…)» in photos.json becomes a link named «the Unsplash License»."""
+    m = re.fullmatch(r"(.+?) \((https://[^)]+)\)", PHOTO_DOC.get("license", ""))
+    if not m:
+        return e(PHOTO_DOC.get("license", ""))
+    return f'under the <a href="{e(m.group(2))}" target="_blank" rel="noopener">{e(m.group(1))}<span class="sr"> (opens in a new tab)</span></a>'
+
+
+ABOUT_SIZES = "(min-width: 900px) 50vw, 100vw"
+NF_SIZES = "(min-width: 900px) 50vw, 100vw"
+
+
+def build_about() -> None:
     root = "../"
+    sample = ('<p class="ab__sample"><b>This site is a preview.</b> The menu, prices, calories, allergens, halal details, '
+              'location, phone, email, hours and opening date are samples until Dough-Vinci confirms them, and every '
+              'food photo is a stock image standing in until our own shoot.</p>') if preview() else ""
     main = fill(tpl("about.html"), {
-        "root": root, "title": about_title(),
-        "lines": "".join(f"<p>{e(x)}</p>" for x in SITE["about"].get("lines", [])),
-        # the owner's own welcome, word for word
-        "welcome": "".join(f"<p>{e(x)}</p>" for x in SITE.get("welcome", [])),
-        "studies": about_studies(),
-        "credits": "{{credits_late}}",
+        "root": root,
+        "welcome": "".join(f"<p>{e(x)}</p>" for x in SITE["welcome"]),
+        "photo": img("place-1", ABOUT_SIZES, 4 / 5, max_w=1200, eager=True, phone_ratio=4 / 3),
+        "leonardo": leonardo("p"),
+        "sample": sample,
+        "arrow": icon("arrow", "ico ico--sm"),
     })
-    # credits list every photo used on the site, so it is filled after all other pages are built
-    return main
+    page("about/index.html", title="About Us", description="Dough-Vinci: the owner’s welcome and the idea behind the "
+         "name.", main=main, current="about/", body_class="about-page",
+         head_extra=preload("place-1", ABOUT_SIZES, 4 / 5, max_w=1200, phone_ratio=4 / 3))
+
+
+def build_credits() -> None:
+    """Who took every photo the other pages use, and the drawing's source; built last, once they are all known."""
+    main = fill(tpl("credits.html"), {"credits": credits(), "license": license_link()})
+    page("credits/index.html", title="Photo credits", description="The stock photos and the Leonardo drawing on the "
+         "Dough-Vinci site, with their photographers and sources.", main=main, body_class="credits-page")
 
 
 def build_404() -> None:
-    main = fill(tpl("404.html"), {"root": SITE["base_path"]})
-    page("404.html", title="Page not found", description="This page is missing from the codex.", main=main,
-         body_class="nf-page", is_404=True)
+    main = fill(tpl("404.html"), {"root": SITE["base_path"], "arrow": icon("arrow", "ico ico--sm"),
+                                  "photo": img("soft-pretzels", NF_SIZES, 4 / 5, max_w=1200, eager=True, phone_ratio=4 / 3)})
+    page("404.html", title="Page not found", description="This page is not on the menu.", main=main,
+         body_class="nf-page", is_404=True, head_extra=preload("soft-pretzels", NF_SIZES, 4 / 5, max_w=1200, phone_ratio=4 / 3))
 
 
 # ───────────────────────────────────────────────────────────── static files
@@ -992,24 +971,13 @@ def build_404() -> None:
 
 def build_assets() -> None:
     css = (SRC / "css" / "site.css").read_text(encoding="utf-8")
-    css = css.replace("/*ART-CSS*/", art_css())
+    css = css.replace("/*GRADE*/", PHOTO_DOC["treatment"]["filter"])
     js = (SRC / "js" / "site.js").read_text(encoding="utf-8")
     write("assets/site.css", css)
     write("assets/site.js", js)
     ASSET_V["site.css"] = hashlib.sha1(css.encode()).hexdigest()[:8]
     ASSET_V["site.js"] = hashlib.sha1(js.encode()).hexdigest()[:8]
-
-    pizza = (ART / "pizza-study.svg").read_text(encoding="utf-8")
-    burger = (ART / "burger-study.svg").read_text(encoding="utf-8")
-    write("assets/art/pizza-study.svg", bake(chunk_strokes(chunk_strokes(pizza, "art-hatch", 20), "art-line", 3)))
-    write("assets/art/burger-study.svg", bake(chunk_strokes(chunk_strokes(burger, "art-hatch", 20), "art-line", 2)))
-    write("assets/art/pizza-lines.svg", bake(chunk_strokes(line_only(pizza), "art-line", 6), "codex-art--water"))
-    for name in ("map", "flying-machine", "gears"):
-        p = NEW_ART / f"{name}.svg"
-        src = p if p.exists() else ART / f"{name}-fallback.svg"
-        write(f"assets/art/{name}.svg", bake(src.read_text(encoding="utf-8")))
-    write("favicon.svg", bake(mark_svg()))  # also the header mark: one file, one download
-    for name in ("og.png", "apple-touch-icon.png"):
+    for name in ("og.png", "apple-touch-icon.png", "favicon.png", "favicon.svg"):
         p = SRC / "img" / name
         if p.exists():
             write(name, p.read_bytes())
@@ -1019,38 +987,49 @@ def build_assets() -> None:
 
 
 def build_meta(pages: list[str]) -> None:
-    preview = SITE.get("preview") or not SITE.get("index")
+    pv = preview() or not SITE.get("index")
     base = SITE["base_url"]
-    robots = "User-agent: *\nDisallow: /\n" if preview else f"User-agent: *\nAllow: /\n\nSitemap: {base}sitemap.xml\n"
-    write("robots.txt", robots)
-    urls = "".join(f"<url><loc>{e(base + p)}</loc><lastmod>{TODAY.isoformat()}</lastmod></url>" for p in pages)
+    write("robots.txt", "User-agent: *\nDisallow: /\n" if pv else f"User-agent: *\nAllow: /\n\nSitemap: {base}sitemap.xml\n")
+    # while the site is a preview the sitemap lists nothing: robots.txt already keeps crawlers out
+    urls = "" if pv else "".join(f"<url><loc>{e(base + p)}</loc><lastmod>{TODAY.isoformat()}</lastmod></url>" for p in pages)
     write("sitemap.xml", f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{urls}</urlset>\n')
     manifest = {"name": f"{SITE['name']} {SITE['subtitle']}", "short_name": SITE["name"], "start_url": "./",
-                "scope": "./", "display": "standalone", "background_color": "#FFF8EC", "theme_color": "#FFF8EC",
+                "scope": "./", "display": "standalone", "background_color": "#121010", "theme_color": "#121010",
                 "description": SITE["description"],
                 "icons": [{"src": "apple-touch-icon.png", "sizes": "180x180", "type": "image/png"},
-                          {"src": "favicon.svg", "sizes": "any", "type": "image/svg+xml"}]}
+                          {"src": "favicon.png", "sizes": "64x64", "type": "image/png"}]}
     write("manifest.webmanifest", json.dumps(manifest, indent=2, ensure_ascii=False) + "\n")
     c = SITE["contact"]
     hours = "; ".join(f"{day_range(h['days'])} {fmt_time(h['open'])}–{fmt_time(h['close'])}" for h in SITE["hours"])
     od = opening()
-    lines = [f"# {SITE['name']} {SITE['subtitle']}", "", f"> {SITE['tagline']} A pizza and smashburger restaurant on "
-             f"{c['street']}, {c['city']}.", ""]
-    if SITE.get("preview"):
-        lines += ["This site is a preview: the menu, prices, calories, allergens, location, phone, hours and opening date "
-                  "are samples, and the photos are stock images.", ""]
+    lines = [f"# {SITE['name']} {SITE['subtitle']}", "", f"> {SITE['tagline']} A halal pizza and smashburger restaurant "
+             f"on {c['street']}, {c['city']}.", ""]
+    pages_md = ["## Pages", "",
+                f"- [Menu]({base}menu/): every dish with price, calories, ingredients and allergens",
+                f"- [About Us]({base}about/): the owner's welcome and the idea behind the name",
+                f"- [Contact]({base}contact/): location, hours, phone, halal statement, FAQ",
+                f"- [Allergens & nutrition]({base}allergens/): every dish by allergen with calories",
+                f"- [Photo credits]({base}credits/): the stock photos and the drawing, with their sources", ""]
+    if preview():
+        # while the menu, place, phone and hours are samples, none of them goes to a machine reader as a fact
+        lines = [f"# {SITE['name']} {SITE['subtitle']}", "", f"> {SITE['tagline']} A pizza and smashburger restaurant "
+                 f"coming to {c['city']}.", "",
+                 "This site is a preview. The menu, prices, calories, allergens, halal details, location, phone, hours "
+                 "and opening date shown on it are samples until the restaurant confirms them, and the photos are stock "
+                 "images. Do not quote them as facts.", ""] + pages_md
+        write("llms.txt", "\n".join(lines))
+        return
     if od and TODAY < od:
         lines += [f"Opening date: {od.isoformat()}.", ""]
     lines += [f"- Location: {c['address']} ({c.get('neighbourhood', '')})", f"- Phone: {c['phone']}", f"- Hours: {hours}",
-              "- Ordering: " + ", ".join(f"[{d['name']}]({d['url']})" for d in SITE["delivery"]) + "; or call for pickup.",
-              "", "## Pages", "", f"- [Menu]({base}menu/): every dish with price, calories, ingredients and allergens",
-              f"- [Allergens & nutrition]({base}allergens/): the allergen matrix", f"- [Visit]({base}visit/): hours, map, FAQ, catering",
-              f"- [About]({base}about/): the idea and photo credits", "", "## Menu", ""]
+              f"- Halal: {SITE['halal']['statement']}",
+              "- Ordering: " + ", ".join(f"[{d['name']}]({d['url']})" for d in SITE["delivery"]) + "; or call for pickup. "
+              "No payment on this site.", ""] + pages_md + ["## Menu", ""]
     for cat in CATS:
         lines.append(f"### {cat['name']}")
         for it in cat["items"]:
             ps = ", ".join(f"{p['label'].replace(chr(34), ' in')} {money(p['price'])}" if p["label"] != "Regular" else money(p["price"]) for p in it["prices"])
-            al = ", ".join(ALLERGENS[a] for a in it["allergens"]) or "none of the priority allergens"
+            al = ", ".join(ALLERGENS[a] for a in it["allergens"]) or "none of the major allergens"
             lines.append(f"- {it['name']}: {it['short']} {ps}. {it['kcal']:,} kcal ({it['portion']}). Contains: {al}.")
         lines.append("")
     write("llms.txt", "\n".join(lines))
@@ -1066,19 +1045,20 @@ def trash_stale() -> None:
 
 
 def main() -> None:
+    check_content()
+    USED_PHOTOS.clear()
+    WRITTEN.clear()
     DOCS.mkdir(exist_ok=True)
     build_assets()
     build_dish_fragments()
     build_home()
     build_menu()
     build_allergens()
-    build_visit()
+    build_contact()
     build_404()
-    about_main = build_about()
-    about_main = about_main.replace("{{credits_late}}", credits())
-    page("about/index.html", title="About", description="Dough-Vinci: the pizza is the art, the smashburger is the "
-         "engineering. The idea, the drawings and the photo credits.", main=about_main, current="about/", body_class="about-page")
-    pages = ["", "menu/", "allergens/", "visit/", "about/"] + [f"menu/{i}/" for i in ORDER_IDS]
+    build_about()
+    build_credits()  # every photo the other pages used
+    pages = ["", "menu/", "about/", "contact/", "allergens/", "credits/"] + [f"menu/{i}/" for i in ORDER_IDS]
     build_meta(pages)
     trash_stale()
     print(f"built {len(WRITTEN)} files into docs/")

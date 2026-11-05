@@ -1,0 +1,32 @@
+<section class="ct" data-hero aria-labelledby="ct-title">
+  <div class="ct__txt">
+    <h1 class="ct__h1 d" id="ct-title">Contact</h1>
+    <h2 class="ct__where d">{{where}}</h2>
+    <p class="ct__addr">{{address}}<br>{{hood}} {{smp}}</p>
+    <p class="ct__status">{{status}}</p>
+    <h2 class="ct__lbl" id="hours">Hours</h2>
+    {{hours}}
+    <ul class="ct__cta">
+      <li><a class="btn btn--line" href="{{maps}}" target="_blank" rel="noopener">{{pin}}<span>Directions</span><span class="sr"> (opens Google Maps in a new tab)</span></a></li>
+      <li><a class="btn btn--line" href="tel:{{tel}}">{{phone_i}}<span>Call {{phone}}</span></a></li>
+      <li><a class="btn btn--line" href="mailto:{{email}}">{{mail_i}}<span>{{email}}</span></a></li>
+    </ul>
+  </div>
+  <div class="ct__ph ph">{{photo}}</div>
+</section>
+<section class="hb" aria-labelledby="hb-title">
+  <div class="hb__in hb__in--wide">
+    <div class="hb__mark">{{halal}}</div>
+    <div><h2 class="hb__statement" id="hb-title">{{halal_statement}}</h2>{{cert}}
+      <p class="hb__more">{{halal_detail}}</p></div>
+  </div>
+</section>
+<section class="faq" aria-labelledby="faq-title">
+  <h2 class="faq__h d" id="faq-title">Questions</h2>
+  <div class="faq__list">{{faq}}</div>
+  <div class="cater">
+    <h2 class="cater__h d">{{catering_title}}</h2>
+    <p>{{catering_text}}</p>
+    <p><a class="btn btn--line" href="tel:{{tel}}">{{phone_i}}<span>Call {{phone}}</span></a></p>
+  </div>
+</section>

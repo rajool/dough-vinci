@@ -1,7 +1,6 @@
 {
   "name": "Dough-Vinci",
   "subtitle": "Pizza & Burger",
-  "status": "opening-soon",
   "opening_date": "2026-12-05",
   "preview": true,
   "index": false,
@@ -9,7 +8,7 @@
   "base_path": "/dough-vinci/",
   "lang": "en",
   "title": "Dough-Vinci Pizza & Burger — Real Pizza. Real Smashburgers.",
-  "description": "Dough-Vinci Pizza & Burger: freshly rolled pizzas and juicy smashburgers with crispy edges and melted cheese. Real Pizza. Real Smashburgers. Made with Passion.",
+  "description": "Dough-Vinci Pizza & Burger: freshly rolled pizzas and juicy smashburgers with crispy edges and melted cheese, all halal. Real Pizza. Real Smashburgers. Made with Passion.",
   "tagline": "Real Pizza. Real Smashburgers. Made with Passion.",
   "strap": "Great Food. Great Taste. Every Bite.",
   "pillars": [
@@ -22,6 +21,14 @@
     "From our freshly rolled, perfectly baked pizzas to our juicy smashburgers with crispy edges and melted cheese, every bite brings together quality ingredients, bold flavors, and a passion for great food.",
     "Whether you’re craving a classic pizza or a mouthwatering smashburger, we’ve got something to satisfy your appetite."
   ],
+  "halal": {
+    "mark_ar": "حلال",
+    "mark_en": "Halal",
+    "statement": "All our meat is halal. No pork, no alcohol.",
+    "certifier": null,
+    "certifier_logo": null,
+    "detail": "Our pepperoni, salami, sausage and bresaola are beef, and our tiramisù is made without liqueur."
+  },
   "contact": {
     "phone": "(604) 555-0142",
     "email": "hello@doughvinci.ca",
@@ -64,40 +71,31 @@
   "delivery": [
     {
       "name": "Uber Eats",
-      "url": "https://www.ubereats.com/ca",
-      "color": "#06C167"
+      "url": "https://www.ubereats.com/ca"
     },
     {
       "name": "DoorDash",
-      "url": "https://www.doordash.com/en-CA",
-      "color": "#FF3008"
+      "url": "https://www.doordash.com/en-CA"
     },
     {
       "name": "SkipTheDishes",
-      "url": "https://www.skipthedishes.com",
-      "color": "#FF8000"
+      "url": "https://www.skipthedishes.com"
     },
     {
       "name": "Fantuan",
-      "url": "https://www.fantuanorder.com",
-      "color": "#FFC000"
+      "url": "https://www.fantuanorder.com"
     }
   ],
-  "social": [],
   "hero": {
-    "kicker": "Opening soon in Vancouver",
     "title_lines": [
       "Real Pizza.",
       "Real Smashburgers."
     ],
-    "sub": "Made with Passion."
-  },
-  "about": {
-    "title": "The pizza is the art. The smashburger is the engineering.",
-    "lines": [
-      "Leonardo filled his notebooks with paintings and machines.",
-      "We fill our kitchen with both."
-    ]
+    "sub": "Made with Passion.",
+    "buttons": {
+      "order": "Order Now",
+      "menu": "Explore Our Menu"
+    }
   },
   "faq": [
     {
@@ -109,8 +107,12 @@
       "a": "Yes. Choose pickup in any of the delivery apps, or call us and collect it at the counter."
     },
     {
+      "q": "Is your food halal?",
+      "a": "Yes. All our meat is halal, and we use no pork and no alcohol. Our pepperoni, salami, sausage and bresaola are beef, and our tiramisù is made without liqueur."
+    },
+    {
       "q": "Do you have vegetarian options?",
-      "a": "Yes: the Mona Lisa and Il Giardino pizzas, the Il Verde burger, and most sides and desserts."
+      "a": "Yes: the Mona Lisa and Mushroom & Balsamic pizzas, the Veggie Burger, most sides and both desserts."
     },
     {
       "q": "How do I check allergens?",
@@ -129,31 +131,27 @@
     "title": "Feeding a crowd?",
     "text": "Pizzas by the stack, smashburgers by the tray. Tell us the date and headcount, and we’ll plan the order for your office, party or team."
   },
-  "map_caption": "Map not to scale · Commercial Drive, Grandview–⁠Woodland",
   "order_note": "Pickup or delivery: your app, your call.",
   "signatures": [
-    {
-      "id": "pepperoni-codex",
-      "note": "cupped & charred"
-    },
-    {
-      "id": "double-smash",
-      "note": "lace edge, crispy"
-    },
-    {
-      "id": "flying-machine",
-      "note": "hot honey!"
-    },
-    {
-      "id": "mona-lisa",
-      "note": "always smiling"
-    }
+    "vitruvian",
+    "mushroom-balsamic",
+    "soft-pretzels",
+    "chocolate-cake"
   ],
-  "home_tiles": {
-    "pizza": "il-giardino",
-    "smash": "codex-inferno",
-    "sides": "onion-rings",
-    "desserts": "tiramisu",
-    "drinks": "italian-soda"
+  "leonardo": {
+    "line": "The pizza is the art. The smashburger is the engineering.",
+    "file": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fc/Leonardo_da_Vinci_-_Ambrosiana-Codice-Atlantico-Codex-Atlanticus-f-29-recto.jpg/{w}px-Leonardo_da_Vinci_-_Ambrosiana-Codice-Atlantico-Codex-Atlanticus-f-29-recto.jpg",
+    "widths": [
+      500,
+      960,
+      1280
+    ],
+    "ratio": [
+      2000,
+      1467
+    ],
+    "page": "https://commons.wikimedia.org/wiki/File:Leonardo_da_Vinci_-_Ambrosiana-Codice-Atlantico-Codex-Atlanticus-f-29-recto.jpg",
+    "alt": "A page of Leonardo da Vinci’s machine drawings in brown ink: a heavy timber frame with gears and levers, smaller studies around it.",
+    "credit": "Leonardo da Vinci, Codex Atlanticus, folio 29 recto. Public domain, via Wikimedia Commons."
   }
 }

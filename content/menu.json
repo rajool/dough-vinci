@@ -2,7 +2,7 @@
   "sample": true,
   "currency": "CAD",
   "note": "Sample menu: dishes, prices and nutrition are placeholders until Dough-Vinci confirms them.",
-  "allergen_note": "Everything is made in one kitchen with wheat, milk, egg, soy, sesame, mustard, fish and tree nuts, so traces are possible in any dish. Ask us if you have a severe allergy.",
+  "allergen_note": "Everything is made in one kitchen with wheat, milk, egg, soy, sesame, mustard and fish, so traces are possible in any dish. Ask us if you have a severe allergy.",
   "allergen_keys": [
     "wheat",
     "milk",
@@ -20,13 +20,13 @@
     {
       "id": "pizza",
       "name": "Pizza",
-      "italian": "L’Arte",
-      "tagline": "Rolled flat. Baked into a masterpiece.",
+      "italian": "Pizze",
+      "tagline": "Flat-rolled and baked hot.",
       "items": [
         {
           "id": "mona-lisa",
           "name": "Mona Lisa",
-          "short": "The classic that always smiles: tomato, mozzarella, basil.",
+          "short": "Tomato, fresh mozzarella, basil, olive oil.",
           "ingredients": [
             "flat-rolled dough",
             "San Marzano-style tomato sauce",
@@ -64,15 +64,13 @@
         {
           "id": "vitruvian",
           "name": "The Vitruvian",
-          "short": "Perfect proportions: pepperoni, mushrooms, green pepper, red onion.",
+          "short": "Beef pepperoni, mushrooms, fresh mozzarella, tomato.",
           "ingredients": [
             "flat-rolled dough",
             "tomato sauce",
-            "mozzarella",
-            "pepperoni",
-            "mushrooms",
-            "green pepper",
-            "red onion"
+            "fresh mozzarella",
+            "beef pepperoni",
+            "roasted mushrooms"
           ],
           "allergens": [
             "wheat",
@@ -80,13 +78,13 @@
           ],
           "may_contain": [],
           "diet": [],
-          "kcal": 1840,
+          "kcal": 1860,
           "portion": "12-inch pizza, whole (6 slices)",
           "nutrition": {
             "protein_g": 80,
-            "carbs_g": 206,
-            "fat_g": 76,
-            "sodium_mg": 4300
+            "carbs_g": 204,
+            "fat_g": 80,
+            "sodium_mg": 4200
           },
           "prices": [
             {
@@ -101,14 +99,14 @@
           "badge": "Signature"
         },
         {
-          "id": "pepperoni-codex",
-          "name": "Pepperoni Codex",
-          "short": "Double pepperoni, cupped and charred at every edge.",
+          "id": "pepperoni",
+          "name": "Beef Pepperoni",
+          "short": "Double beef pepperoni, cupped and charred.",
           "ingredients": [
             "flat-rolled dough",
             "tomato sauce",
             "mozzarella",
-            "double cup-and-char pepperoni",
+            "double cup-and-char beef pepperoni",
             "oregano"
           ],
           "allergens": [
@@ -137,74 +135,69 @@
           ]
         },
         {
-          "id": "sfumato-bbq",
-          "name": "Sfumato BBQ",
-          "short": "Smoky BBQ chicken, red onion, a soft haze of cilantro.",
-          "ingredients": [
-            "flat-rolled dough",
-            "smoky BBQ sauce",
-            "mozzarella",
-            "roasted chicken",
-            "red onion",
-            "cilantro"
-          ],
-          "allergens": [
-            "wheat",
-            "milk",
-            "mustard",
-            "sulphites"
-          ],
-          "may_contain": [],
-          "diet": [],
-          "kcal": 1900,
-          "portion": "12-inch pizza, whole (6 slices)",
-          "nutrition": {
-            "protein_g": 104,
-            "carbs_g": 236,
-            "fat_g": 58,
-            "sodium_mg": 4400
-          },
-          "prices": [
-            {
-              "label": "12\"",
-              "price": "23"
-            },
-            {
-              "label": "16\"",
-              "price": "32"
-            }
-          ]
-        },
-        {
-          "id": "il-giardino",
-          "name": "Il Giardino",
-          "short": "A whole garden: mushrooms, peppers, olives, tomatoes, spinach.",
+          "id": "fennel-sausage",
+          "name": "Beef Fennel Sausage",
+          "short": "Smoked beef fennel sausage, fresh mozzarella, tomato.",
           "ingredients": [
             "flat-rolled dough",
             "tomato sauce",
-            "mozzarella",
-            "mushrooms",
-            "green pepper",
-            "red onion",
-            "black olives",
-            "cherry tomatoes",
-            "baby spinach"
+            "fresh mozzarella",
+            "smoked halal beef fennel sausage"
           ],
           "allergens": [
             "wheat",
             "milk"
           ],
           "may_contain": [],
+          "diet": [],
+          "kcal": 2040,
+          "portion": "12-inch pizza, whole (6 slices)",
+          "nutrition": {
+            "protein_g": 92,
+            "carbs_g": 202,
+            "fat_g": 96,
+            "sodium_mg": 4400
+          },
+          "prices": [
+            {
+              "label": "12\"",
+              "price": "22"
+            },
+            {
+              "label": "16\"",
+              "price": "31"
+            }
+          ]
+        },
+        {
+          "id": "mushroom-balsamic",
+          "name": "Mushroom & Balsamic",
+          "short": "Roasted mushrooms, green olives, balsamic glaze. No tomato.",
+          "ingredients": [
+            "flat-rolled dough",
+            "garlic olive-oil base",
+            "mozzarella",
+            "roasted mushrooms",
+            "green olives",
+            "balsamic glaze",
+            "vegetarian grana (microbial rennet)"
+          ],
+          "allergens": [
+            "wheat",
+            "milk",
+            "sulphites"
+          ],
+          "may_contain": [],
           "diet": [
             "vegetarian"
           ],
-          "kcal": 1640,
+          "kcal": 1760,
           "portion": "12-inch pizza, whole (6 slices)",
           "nutrition": {
-            "protein_g": 66,
-            "carbs_g": 210,
-            "fat_g": 58,
-            "sodium_mg": 3500
+            "protein_g": 72,
+            "carbs_g": 214,
+            "fat_g": 68,
+            "sodium_mg": 3700
           },
           "prices": [
             {
@@ -218,14 +211,52 @@
           ]
         },
         {
-          "id": "flying-machine",
-          "name": "Flying Machine",
-          "short": "Spicy salami, jalapeño and hot honey. It takes off.",
+          "id": "bresaola-arugula",
+          "name": "Bresaola & Arugula",
+          "short": "White pizza with beef bresaola, arugula and shaved parmesan.",
+          "ingredients": [
+            "flat-rolled dough",
+            "garlic olive-oil base",
+            "mozzarella",
+            "beef bresaola",
+            "baby arugula",
+            "shaved parmesan",
+            "extra-virgin olive oil"
+          ],
+          "allergens": [
+            "wheat",
+            "milk"
+          ],
+          "may_contain": [],
+          "diet": [],
+          "kcal": 1740,
+          "portion": "12-inch pizza, whole (6 slices)",
+          "nutrition": {
+            "protein_g": 94,
+            "carbs_g": 192,
+            "fat_g": 66,
+            "sodium_mg": 4200
+          },
+          "prices": [
+            {
+              "label": "12\"",
+              "price": "23"
+            },
+            {
+              "label": "16\"",
+              "price": "32"
+            }
+          ]
+        },
+        {
+          "id": "hot-honey-salami",
+          "name": "Hot Honey Beef Salami",
+          "short": "Spicy beef salami, jalapeño, chili flakes, hot honey.",
           "ingredients": [
             "flat-rolled dough",
             "tomato sauce",
             "mozzarella",
-            "spicy salami",
+            "spicy beef salami",
             "jalapeño",
             "chili flakes",
             "hot honey"
@@ -256,72 +287,31 @@
               "price": "32"
             }
           ]
-        },
-        {
-          "id": "gioconda-bianca",
-          "name": "Gioconda Bianca",
-          "short": "No tomato, all mystery: ricotta, mozzarella, garlic, spinach.",
-          "ingredients": [
-            "flat-rolled dough",
-            "garlic olive-oil base",
-            "mozzarella",
-            "ricotta",
-            "baby spinach",
-            "roasted garlic",
-            "parmesan",
-            "black pepper"
-          ],
-          "allergens": [
-            "wheat",
-            "milk"
-          ],
-          "may_contain": [],
-          "diet": [],
-          "kcal": 1860,
-          "portion": "12-inch pizza, whole (6 slices)",
-          "nutrition": {
-            "protein_g": 88,
-            "carbs_g": 196,
-            "fat_g": 80,
-            "sodium_mg": 3600
-          },
-          "prices": [
-            {
-              "label": "12\"",
-              "price": "22"
-            },
-            {
-              "label": "16\"",
-              "price": "31"
-            }
-          ]
         }
       ]
     },
     {
       "id": "smash",
       "name": "Smashburgers",
-      "italian": "L’Ingegneria",
-      "tagline": "Smashed thin. Engineered for crispy edges.",
+      "italian": "Hamburger",
+      "tagline": "Smashed thin for crispy edges.",
       "items": [
         {
           "id": "original-smash",
           "name": "The Original Smash",
-          "short": "One smashed patty, American cheese, pickles, house sauce.",
+          "short": "Smashed beef patty, creamy slaw, pickled red onion, pickles on top.",
           "ingredients": [
             "toasted potato bun",
             "smashed beef patty",
-            "American cheese",
-            "pickles",
-            "diced onion",
-            "house sauce"
+            "creamy slaw (cabbage, mayonnaise, cider vinegar)",
+            "pickled red onion",
+            "dill pickle chips"
           ],
           "allergens": [
             "wheat",
             "milk",
             "egg",
-            "soy",
-            "mustard"
+            "soy"
           ],
           "may_contain": [
             "sesame"
@@ -329,12 +319,12 @@
           "diet": [
             "gluten-free-option"
           ],
-          "kcal": 560,
+          "kcal": 570,
           "portion": "1 burger, without sides",
           "nutrition": {
-            "protein_g": 29,
-            "carbs_g": 36,
-            "fat_g": 33,
+            "protein_g": 26,
+            "carbs_g": 39,
+            "fat_g": 34,
             "sodium_mg": 1150
           },
           "prices": [
@@ -342,12 +332,13 @@
               "label": "Regular",
               "price": "12"
             }
-          ]
+          ],
+          "badge": "Signature"
         },
         {
           "id": "double-smash",
           "name": "Double Smash",
-          "short": "Two patties, double cheese, crispy lacy edges. The signature.",
+          "short": "Two patties, two slices of American cheese, pickles, house sauce.",
           "ingredients": [
             "toasted potato bun",
             "2 smashed beef patties",
@@ -382,52 +373,12 @@
               "label": "Regular",
               "price": "16"
             }
-          ],
-          "badge": "Signature"
-        },
-        {
-          "id": "the-inventor",
-          "name": "The Inventor",
-          "short": "Double smash, caramelized onion, aged cheddar, garlic aioli.",
-          "ingredients": [
-            "toasted potato bun",
-            "2 smashed beef patties",
-            "aged cheddar",
-            "caramelized onion",
-            "garlic aioli"
-          ],
-          "allergens": [
-            "wheat",
-            "milk",
-            "egg",
-            "soy",
-            "mustard"
-          ],
-          "may_contain": [
-            "sesame"
-          ],
-          "diet": [
-            "gluten-free-option"
-          ],
-          "kcal": 940,
-          "portion": "1 burger, without sides",
-          "nutrition": {
-            "protein_g": 52,
-            "carbs_g": 42,
-            "fat_g": 62,
-            "sodium_mg": 1500
-          },
-          "prices": [
-            {
-              "label": "Regular",
-              "price": "18"
-            }
           ]
         },
         {
-          "id": "codex-inferno",
-          "name": "Codex Inferno",
-          "short": "Double smash, pepper jack, jalapeño, chipotle mayo. Hot.",
+          "id": "spicy-smash",
+          "name": "Spicy Smash",
+          "short": "Two patties, pepper jack, pickled jalapeño, chipotle mayo.",
           "ingredients": [
             "toasted potato bun",
             "2 smashed beef patties",
@@ -466,9 +417,9 @@
           ]
         },
         {
-          "id": "il-verde",
-          "name": "Il Verde",
-          "short": "A crispy vegetable patty with cheddar, lettuce and tomato.",
+          "id": "veggie-burger",
+          "name": "Veggie Burger",
+          "short": "Crispy vegetable patty, cheddar, lettuce, tomato.",
           "ingredients": [
             "toasted potato bun",
             "crispy vegetable patty (chickpea, carrot, peas, breadcrumb)",
@@ -511,15 +462,15 @@
     {
       "id": "sides",
       "name": "Sides",
-      "italian": "I Contorni",
+      "italian": "Contorni",
       "tagline": "Golden, crisp and made for sharing.",
       "items": [
         {
-          "id": "golden-ratio-fries",
-          "name": "Golden Ratio Fries",
-          "short": "Skin-on, crisp, sea-salted. Perfectly proportioned.",
+          "id": "fries",
+          "name": "Fries",
+          "short": "Skinny, skin-on, sea salt.",
           "ingredients": [
-            "skin-on potatoes",
+            "skinny-cut skin-on potatoes",
             "canola oil",
             "sea salt"
           ],
@@ -548,9 +499,83 @@
           ]
         },
         {
+          "id": "soft-pretzels",
+          "name": "Soft Pretzels",
+          "short": "Coarse salt, grainy mustard, garlic aioli.",
+          "ingredients": [
+            "pretzel dough",
+            "butter",
+            "coarse salt",
+            "grainy mustard (made without wine)",
+            "garlic aioli"
+          ],
+          "allergens": [
+            "wheat",
+            "milk",
+            "egg",
+            "mustard"
+          ],
+          "may_contain": [],
+          "diet": [
+            "vegetarian"
+          ],
+          "kcal": 860,
+          "portion": "4 pretzel sticks with 2 dips, for sharing",
+          "nutrition": {
+            "protein_g": 22,
+            "carbs_g": 130,
+            "fat_g": 28,
+            "sodium_mg": 2600
+          },
+          "prices": [
+            {
+              "label": "Regular",
+              "price": "9"
+            }
+          ]
+        },
+        {
+          "id": "skillet-cheese-dip",
+          "name": "Skillet Cheese Dip",
+          "short": "Warm three-cheese dip with fried dough chips.",
+          "ingredients": [
+            "cream cheese",
+            "mozzarella",
+            "white cheddar",
+            "garlic",
+            "smoked paprika",
+            "microgreens",
+            "fried pizza-dough chips"
+          ],
+          "allergens": [
+            "wheat",
+            "milk"
+          ],
+          "may_contain": [
+            "egg"
+          ],
+          "diet": [
+            "vegetarian"
+          ],
+          "kcal": 750,
+          "portion": "1 skillet with dough chips, for sharing",
+          "nutrition": {
+            "protein_g": 26,
+            "carbs_g": 60,
+            "fat_g": 45,
+            "sodium_mg": 1350
+          },
+          "prices": [
+            {
+              "label": "Regular",
+              "price": "11"
+            }
+          ]
+        },
+        {
           "id": "garlic-knots",
           "name": "Garlic Knots",
-          "short": "Six knots, garlic butter, parmesan, marinara for dipping.",
+          "short": "Garlic butter, parmesan, marinara for dipping.",
           "ingredients": [
             "pizza dough",
             "garlic butter",
@@ -580,83 +605,14 @@
           ]
         },
         {
-          "id": "onion-rings",
-          "name": "Orbit Onion Rings",
-          "short": "Thick-cut, light batter, golden all the way round.",
-          "ingredients": [
-            "sweet onion",
-            "wheat-flour batter",
-            "canola oil",
-            "sea salt"
-          ],
-          "allergens": [
-            "wheat"
-          ],
-          "may_contain": [
-            "milk",
-            "egg"
-          ],
-          "diet": [
-            "vegetarian"
-          ],
-          "kcal": 480,
-          "portion": "regular portion (about 8 rings)",
-          "nutrition": {
-            "protein_g": 6,
-            "carbs_g": 52,
-            "fat_g": 28,
-            "sodium_mg": 780
-          },
-          "prices": [
-            {
-              "label": "Regular",
-              "price": "8"
-            }
-          ]
-        },
-        {
-          "id": "mozzarella-sticks",
-          "name": "Mozzarella Sticks",
-          "short": "Six golden sticks, stretchy middles, marinara on the side.",
-          "ingredients": [
-            "mozzarella",
-            "seasoned breadcrumbs",
-            "egg wash",
-            "marinara"
-          ],
-          "allergens": [
-            "wheat",
-            "milk",
-            "egg"
-          ],
-          "may_contain": [],
-          "diet": [
-            "vegetarian"
-          ],
-          "kcal": 620,
-          "portion": "6 sticks with marinara",
-          "nutrition": {
-            "protein_g": 28,
-            "carbs_g": 48,
-            "fat_g": 35,
-            "sodium_mg": 1400
-          },
-          "prices": [
-            {
-              "label": "Regular",
-              "price": "10"
-            }
-          ]
-        },
-        {
-          "id": "codex-caesar",
-          "name": "Codex Caesar",
-          "short": "Crisp romaine, parmesan, garlic croutons, classic Caesar dressing.",
+          "id": "caesar-salad",
+          "name": "Caesar Salad",
+          "short": "Romaine, parmesan, croutons, classic dressing.",
           "ingredients": [
             "romaine",
             "parmesan",
             "garlic croutons",
-            "Caesar dressing (anchovy, egg yolk, Dijon)",
+            "Caesar dressing (anchovy, egg yolk, Dijon mustard made without wine)",
             "lemon"
           ],
           "allergens": [
@@ -690,17 +646,52 @@
     {
       "id": "desserts",
       "name": "Desserts",
-      "italian": "I Dolci",
-      "tagline": "The final brushstroke.",
+      "italian": "Dolci",
+      "tagline": "Something sweet to finish.",
       "items": [
+        {
+          "id": "chocolate-cake",
+          "name": "Chocolate Cake",
+          "short": "Two dark chocolate layers, ganache, whipped cream.",
+          "ingredients": [
+            "chocolate sponge (flour, cocoa, egg, butter, sugar)",
+            "dark chocolate ganache",
+            "whipped cream",
+            "mint"
+          ],
+          "allergens": [
+            "wheat",
+            "milk",
+            "egg",
+            "soy"
+          ],
+          "may_contain": [],
+          "diet": [
+            "vegetarian"
+          ],
+          "kcal": 570,
+          "portion": "1 slice",
+          "nutrition": {
+            "protein_g": 7,
+            "carbs_g": 64,
+            "fat_g": 32,
+            "sodium_mg": 360
+          },
+          "prices": [
+            {
+              "label": "Regular",
+              "price": "8"
+            }
+          ]
+        },
         {
           "id": "tiramisu",
           "name": "Tiramisù",
-          "short": "Espresso-soaked ladyfingers, mascarpone cream, cocoa.",
+          "short": "Espresso-soaked ladyfingers, mascarpone, cocoa. No liqueur.",
           "ingredients": [
             "ladyfingers",
             "mascarpone",
-            "espresso",
+            "espresso (no liqueur)",
             "egg",
             "sugar",
             "cocoa"
@@ -728,59 +719,23 @@
               "price": "8"
             }
           ]
-        },
-        {
-          "id": "cannoli",
-          "name": "Cannoli",
-          "short": "Crisp shells, sweet ricotta, chocolate chips, crushed pistachio.",
-          "ingredients": [
-            "fried pastry shell",
-            "sweetened ricotta",
-            "chocolate chips",
-            "pistachio",
-            "icing sugar"
-          ],
-          "allergens": [
-            "wheat",
-            "milk",
-            "egg",
-            "soy",
-            "treenut"
-          ],
-          "may_contain": [],
-          "diet": [
-            "vegetarian"
-          ],
-          "kcal": 520,
-          "portion": "2 cannoli",
-          "nutrition": {
-            "protein_g": 14,
-            "carbs_g": 56,
-            "fat_g": 27,
-            "sodium_mg": 160
-          },
-          "prices": [
-            {
-              "label": "Regular",
-              "price": "7"
-            }
-          ]
         }
       ]
     },
     {
       "id": "drinks",
       "name": "Drinks",
-      "italian": "Le Bevande",
-      "tagline": "Cold, fizzy, freshly squeezed.",
+      "italian": "Bevande",
+      "tagline": "Ice-cold sodas and fresh lemonade.",
       "items": [
         {
-          "id": "italian-soda",
-          "name": "Italian Soda",
-          "short": "Sparkling water, blood orange or raspberry syrup, lots of ice.",
+          "id": "blood-orange-soda",
+          "name": "Blood Orange Soda",
+          "short": "Blood-orange syrup, sparkling water, lots of ice.",
           "ingredients": [
             "sparkling water",
-            "fruit syrup (blood orange or raspberry)",
+            "blood-orange syrup",
+            "blood-orange wheel",
             "ice"
           ],
           "allergens": [],
@@ -804,25 +759,27 @@
           ]
         },
         {
-          "id": "house-lemonade",
-          "name": "House Lemonade",
-          "short": "Fresh lemons, cane sugar, a sprig of mint.",
+          "id": "pink-lemonade",
+          "name": "Pink Lemonade",
+          "short": "Fresh lemon, a splash of raspberry, crushed ice.",
           "ingredients": [
             "fresh lemon juice",
             "cane sugar",
+            "raspberry purée",
             "water",
-            "mint"
+            "crushed ice",
+            "lemon peel"
           ],
           "allergens": [],
           "may_contain": [],
           "diet": [
             "vegan"
           ],
-          "kcal": 200,
+          "kcal": 210,
           "portion": "16 oz",
           "nutrition": {
             "protein_g": 0,
-            "carbs_g": 52,
+            "carbs_g": 54,
             "fat_g": 0,
             "sodium_mg": 15
           },
@@ -836,9 +793,9 @@
         {
           "id": "fountain-pop",
           "name": "Fountain Pop",
-          "short": "Cola, diet cola, lemon-lime or root beer.",
+          "short": "Cola, diet cola, lemon-lime or orange.",
           "ingredients": [
-            "cola, diet cola, lemon-lime or root beer"
+            "cola, diet cola, lemon-lime or orange"
           ],
           "allergens": [],
           "may_contain": [],
@@ -866,44 +823,44 @@
   "combos": [
     {
       "id": "smash-study",
-      "name": "The Smash Study",
+      "name": "Smash Combo",
       "contents": [
-        "Double Smash",
-        "Golden Ratio Fries",
+        "The Original Smash",
+        "Fries",
         "Fountain Pop"
       ],
-      "price": "21",
+      "price": "18",
       "photos": [
-        "double-smash.primary"
+        "original-smash"
       ]
     },
     {
       "id": "bottega-for-two",
-      "name": "Bottega for Two",
+      "name": "Pizza & Burger for Two",
       "contents": [
         "Any 12\" pizza",
         "Any smashburger",
-        "Golden Ratio Fries",
+        "Fries",
         "2 Fountain Pops"
       ],
-      "price": "44",
+      "price": "40",
       "photos": [
-        "gioconda-bianca",
-        "the-inventor",
-        "golden-ratio-fries"
+        "vitruvian",
+        "original-smash",
+        "fries"
       ]
     },
     {
       "id": "famiglia",
-      "name": "La Famiglia",
+      "name": "Family Meal",
       "contents": [
         "Two 16\" pizzas",
         "Garlic Knots",
-        "Codex Caesar"
+        "Caesar Salad"
       ],
       "price": "68",
       "photos": [
-        "atmo-sharing"
+        "combo-spread"
       ]
     }
   ]

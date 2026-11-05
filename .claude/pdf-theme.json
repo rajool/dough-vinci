@@ -3,16 +3,18 @@
   "tagline": "Pizza & Burger",
   "website": "rajool.github.io/dough-vinci",
   "ink": "#1f160e",
-  "accent": "#d9a441",
+  "accent": "#C8261B",
   "mood": "warm",
   "language": "fa",
   "fonts": {
     "persian_display": "estedad",
     "persian": "vazirmatn",
-    "latin_display": "cormorant-garamond",
+    "latin_display": "geist",
     "latin_guest": "inter"
   },
   "locales": {
-    "fa": { "tagline": "پیتزا و برگر" }
+    "fa": {
+      "tagline": "پیتزا و برگر"
+    }
   }
 }
