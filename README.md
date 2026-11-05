@@ -1,12 +1,14 @@
 # Dough-Vinci Pizza & Burger
 
-The website of Dough-Vinci, a halal pizza and smashburger restaurant opening on Commercial Drive, Vancouver. The design,
+The website of Dough-Vinci, a halal pizza, smashburger and pasta restaurant opening in early December 2026 at 12420
+No. 1 Road, Richmond, BC. The design,
 «Nero» (a pizzeria at night: warm black, cream type, tomato-red blocks, the food edge to edge), is in
 [DESIGN.md](DESIGN.md).
 
 **Preview:** https://rajool.github.io/dough-vinci/ (every page carries `noindex` and a small «Preview» mark while
-`preview` is on; the menu, prices, calories, allergens, address, phone and hours are samples, listed in
-[content/placeholders.md](content/placeholders.md)).
+`preview` is on). The location, parking, hours, email, dine-in and halal statement come from the owner; the menu,
+prices, calories, allergens, phone, exact opening day, delivery links and photos are samples. Both lists are in
+[content/placeholders.md](content/placeholders.md).
 
 ## Pages
 
@@ -29,10 +31,10 @@ the Trash. The build also copies `brief/*.pdf` into `docs/brief/`; no page links
 
 | Path | What |
 |---|---|
-| `content/site.json` | name, copy, the owner's welcome, opening date, contact, hours, delivery links, the halal block, FAQ, catering, «Start here» dishes, the Leonardo drawing, `preview` and `index` switches |
+| `content/site.json` | name, copy, the owner's welcome, opening date, contact, hours, delivery links, the halal block, FAQ, catering, «Start here» dishes, the Leonardo drawing, `preview` and `index` switches, and `confirmed` (which fields the owner has confirmed) |
 | `content/menu.json` | categories, dishes (ingredients, kcal, nutrition, allergens, may-contain, diet, prices, badges), combos, allergen note, `sample` switch |
 | `content/photos.json` | every Unsplash photo (alt text, author, crop), the photographers, the shared grade, the menu strips, and `no_photo`: the dishes shown as text only |
-| `content/placeholders.md` | every sample datum still to confirm |
+| `content/placeholders.md` | the owner's confirmed facts, and every sample datum still to confirm |
 | `src/templates/` | page skeletons with `{{placeholders}}` |
 | `src/css/site.css`, `src/js/site.js` | the whole design system, and the enhancements (sheets, filters, open-now, the phone Order bar) |
 | `src/img/` | `og.png`, `apple-touch-icon.png` and `favicon.png`, made by `tools/render_images.py` |
@@ -51,25 +53,36 @@ The owner does not edit the site himself; every change is a JSON edit and a rebu
   composition per strip); without it a section shows every photographed dish. When the
   restaurant's own shoot arrives, a dish leaves `no_photo` and gets its entry.
 - **Start here**: `signatures` in `content/site.json`, four dishes with photos.
-- **Hours**: `hours` in `content/site.json`, in Vancouver time. The status and the hours table follow them.
-- **Opening date**: `opening_date` (`YYYY-MM-DD`). Until that day the header and Contact say «Opening Dec 5»; after
-  it, while `preview` is on, they make no open-now claim; once `preview` is off they show «Open now · until 11 pm» or
-  «Closed · opens 11 am». `{opening}` in a FAQ answer becomes the date. A page address with `?now=2026-12-11T19:30`
-  shows the status at that moment, for checking.
+- **Hours**: `hours` in `content/site.json`, in Pacific time (`timezone` America/Vancouver). The status and the hours
+  table follow them.
+- **Opening date**: `opening_date` (`YYYY-MM-DD`) and `opening_approx`. While `opening_approx` is true the date is the
+  owner's «around» date: the header says «Opening early Dec», the hero, the yellow band and Contact «Opening early
+  December» and `{opening}` in a FAQ answer «in early December 2026», with no weekday or day number. With
+  `opening_approx` false they say «Opening Dec 1», «Opening Tue, Dec 1» and «on Tuesday, December 1». After the date,
+  while `preview` is on, they make no open-now claim; once `preview` is off they show «Open now · until 10 pm» or
+  «Closed · opens 11 am». A page address with `?now=2026-12-11T19:30` shows the status at that moment, for checking.
+- **Confirmed fields**: `confirmed` in `content/site.json` (`location`, `hours`, `email`, `halal`, `dine_in`,
+  `parking`, `opening_date`, `phone`, `delivery`, `photos`; the menu follows `sample` in menu.json). While `preview` is
+  on, every «Sample» label and every list of samples (the header's Preview line, the footer's fine print, About Us,
+  Contact, llms.txt) comes from it, and the JSON-LD and llms.txt carry only confirmed facts. When the owner confirms a
+  field, set it to `true` and rebuild.
 - **Delivery and contact**: `delivery[].url` (the restaurant's own store page on each app), `contact.phone`,
-  `contact.email`, `contact.address` (shown as written), `contact.street` (the hero tag), `contact.map_label` (the big
-  location heading), `contact.neighbourhood`, `contact.maps_url`, and for the JSON-LD after launch
-  `contact.street_address` and `contact.postal_code`.
-- **Halal**: `halal.statement` and `halal.detail`; `halal.certifier` once the owner names one (Contact then says
-  «Certified by …»).
+  `contact.email`, `contact.address` (the full address, in the Contact description and llms.txt), `contact.city` (the
+  hero tag and the footer's mirrored line), `contact.map_label` (the big location heading on the yellow band and
+  Contact), `contact.locality` (the line under it), `contact.street_address` and `contact.locality` again (the footer's
+  two address lines and the Order sheet), `contact.parking` and `contact.dine_in` (Contact), `contact.maps_url`, and
+  for the JSON-LD `contact.street_address` and `contact.postal_code`.
+- **Halal**: `halal.statement`, `halal.detail` and `halal.certifier` (Contact, the FAQ and llms.txt say «Halal
+  certification by …»); `halal.certifier_logo` stays empty until the owner sends the certifier's logo with the issued
+  certificate. The site says nothing about pork or alcohol, at the owner's request.
 - Then run `python3 build.py` and the tests, and commit `content/` and `docs/` together.
 
 ## Launching
 
-1. Replace every sample in `content/placeholders.md` with the owner's real details (until then the location is cross
-   streets only, because any real number on the Drive belongs to a business that exists today).
+1. Replace every sample in `content/placeholders.md` with the owner's real details and set its field in `confirmed`
+   to `true`; the dough-vinci.com domain and the info@dough-vinci.com mailbox must exist.
 2. In `content/menu.json` set `"sample": false` (removes the sample notes and adds `hasMenu` to the JSON-LD).
 3. In `content/site.json` set `"preview": false` and `"index": true` (removes `noindex`, the «Preview» mark, the
    «Sample» labels and the robots `Disallow`, adds the sitemap to robots.txt, turns on the live open-now status, and
-   adds the phone, hours and street address to the JSON-LD).
+   adds every field to the JSON-LD and llms.txt).
 4. Rebuild and run the tests.

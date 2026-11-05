@@ -184,6 +184,7 @@ main:focus { outline: none; }
 .tag { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 16px; font-weight: 600; font-size: 17px; }
 .tag .halal__en { font-weight: 700; }
 .tag__t { color: var(--panna); }
+.tag__g { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; min-width: 0; } /* the Sample label stays with the date */
 .hero__h { margin-top: 30px; font-size: clamp(36px, 4.6vw, 84px); font-size: min(84px, 11.4cqi); }
 .hero__h span { display: block; }
 .hero__rule { display: block; width: 168px; height: 8px; background: var(--rosso); margin-top: 26px; }
@@ -218,6 +219,7 @@ main:focus { outline: none; }
 .ob__list .ico { opacity: .8; }
 .ob a:focus-visible { outline-color: var(--panna); }
 .ob__tel { font-variant-numeric: tabular-nums; }
+.nw { white-space: nowrap; }
 .smp { display: inline-block; border: 1px solid currentColor; font-size: 14px; font-weight: 600; line-height: 1; padding: 3px 6px 2px; vertical-align: middle; max-width: 100%; font-stretch: 100%; text-transform: none; font-family: "Archivo", "DV Text H", "DV Text A", sans-serif; }
 
 /* ---------- sections ---------- */
@@ -265,14 +267,15 @@ main:focus { outline: none; }
 /* ---------- halal + where (cheese band) ---------- */
 .hb { background: var(--cheese); color: var(--ink); }
 .hb__in { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center; padding: clamp(64px, 7vw, 104px) var(--pad); }
-.hb__in--wide { grid-template-columns: auto 1fr; gap: 48px; }
+.hb__in--wide { grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr); gap: 48px; }
+.hb__info .hb__cert { margin-top: 0; font-weight: 700; font-size: 22px; }
 .hb__mark { display: flex; flex-direction: column; align-items: flex-start; gap: 28px; }
 .hb__statement { font-family: var(--fd); font-stretch: 62%; font-weight: 900; font-size: clamp(40px, 4.2vw, 68px); line-height: .92; text-transform: uppercase; max-width: 12em; }
 .hb__statement span { display: block; text-wrap: balance; }
 .hb__more, .hb__cert { margin-top: 16px; font-size: 19px; max-width: 34em; }
 .hb__h { font-size: clamp(52px, 5.6vw, 92px); }
 .hb__hood { margin-top: 12px; font-size: 19px; font-weight: 600; display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
-.hb__status { margin-top: 26px; }
+.hb__status, .ct__status { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 26px; } /* a wrapped Sample label starts at the text's edge */
 .hb .status { color: var(--ink); font-size: 26px; font-family: var(--fd); font-stretch: 62%; font-weight: 800; text-transform: uppercase; }
 .hb .status::before { width: 14px; height: 14px; background: var(--ink); }
 .hb .status[data-state="soon"]::before { background: var(--rosso); }
@@ -289,6 +292,7 @@ main:focus { outline: none; }
 .foot__list a { display: inline-block; max-width: 100%; padding: 4px 0; text-decoration: none; overflow-wrap: anywhere; }
 .foot__list a:hover { text-decoration: underline; text-decoration-color: var(--rosso); }
 .foot__list li:not(:has(a)) { padding: 4px 0; max-width: 16em; }
+.foot__list a .nw { white-space: nowrap; }
 .foot__halal p { margin-top: 14px; font-size: 17px; max-width: 18em; }
 .foot__wm { margin-top: clamp(56px, 6vw, 88px); font-size: 18.6vw; line-height: .76; margin-left: -.03em; white-space: nowrap; overflow-x: clip; }
 .foot__wm .wm__dash { color: var(--rosso); }
@@ -337,6 +341,25 @@ dialog:focus, dialog:focus-visible { outline: none; }
 .os__tel { font-weight: 700; font-size: 18px; font-variant-numeric: tabular-nums; display: inline-flex; gap: 8px; align-items: center; white-space: nowrap; }
 .os__list a:hover { background: var(--rosso-deep); }
 .os a:focus-visible, .os .x:focus-visible { outline-color: var(--panna); outline-offset: -3px; }
+.os__eat { margin-top: 8px; padding-top: 12px; border-top: 2px solid rgba(245, 235, 218, .55); font-size: 18px; }
+/* a laptop screen: the whole order sheet, the note at its foot included, fits without scrolling */
+@media (min-width: 900px) and (max-height: 960px) {
+  .os { padding: 30px 40px 26px; }
+  .os__h { font-size: 76px; }
+  .os__sub { margin-top: 10px; font-size: 18px; }
+  .os__lbl { margin-top: 22px; }
+  .os__list a { min-height: 52px; padding: 7px 0; }
+  .os__name { font-size: 34px; }
+  .os__foot { padding-top: 22px; }
+}
+@media (min-width: 900px) and (max-height: 800px) {
+  .os { padding-top: 24px; padding-bottom: 20px; }
+  .os__h { font-size: 64px; }
+  .os__lbl { margin-top: 16px; }
+  .os__list a { min-height: 46px; padding: 5px 0; }
+  .os__name { font-size: 30px; }
+  .os__foot { padding-top: 16px; }
+}
 .os__foot { margin-top: auto; padding-top: 36px; display: flex; align-items: center; gap: 16px; font-size: 16px; }
 .os__foot p { max-width: 26em; }
 
@@ -472,12 +495,12 @@ a.is-wait { cursor: progress; }
 .row a:focus-visible { outline: 3px solid var(--ink); outline-offset: -3px; }
 .row__top { display: flex; align-items: baseline; gap: 10px; }
 .row__name { font-family: var(--fd); font-stretch: 62%; font-weight: 800; font-size: clamp(26px, 2.1vw, 32px); line-height: 1; text-transform: uppercase; }
-.row__dots { flex: 1; min-width: 0; border-bottom: 3px dotted rgba(26, 20, 18, .36); transform: translateY(-6px); }
+.row__dots { flex: 1; min-width: 24px; border-bottom: 3px dotted rgba(26, 20, 18, .36); transform: translateY(-6px); }
 .row__ps { display: flex; }
 .row__n { font-family: var(--fd); font-stretch: 62%; font-weight: 900; font-size: clamp(26px, 2.1vw, 32px); line-height: 1; color: var(--rosso-ink); font-variant-numeric: tabular-nums lining-nums; }
 .row__short { display: block; margin-top: 8px; font-size: 17px; line-height: 1.4; padding-right: 12px; }
 .row__meta { display: block; margin-top: 6px; font-size: 15px; color: var(--ink-2); }
-.row__meta b { font-weight: 700; }
+.row__meta b { font-weight: 700; white-space: nowrap; }
 
 .fine { display: grid; grid-template-columns: 1fr 1fr; gap: 24px 56px; padding: clamp(56px, 6vw, 80px) var(--pad) clamp(64px, 7vw, 96px); max-width: 1320px; font-size: 17px; color: var(--panna-80); }
 .fine--one { grid-template-columns: minmax(0, 1fr); max-width: 900px; }
@@ -518,7 +541,9 @@ a.is-wait { cursor: progress; }
 .ct__where { margin-top: clamp(36px, 4vw, 56px); font-size: clamp(44px, 4.2vw, 68px); }
 .ct__addr { margin-top: 14px; font-size: 19px; display: block; }
 .ct__addr .smp { margin-left: 6px; }
-.ct__status { margin-top: 26px; }
+.btn .smp { font-size: 13px; }
+.ct__more { margin-top: 8px; font-size: 18px; color: var(--panna-80); max-width: 30em; }
+
 .ct__status .status { font-size: 26px; font-family: var(--fd); font-stretch: 62%; font-weight: 800; text-transform: uppercase; color: var(--panna); }
 .ct__status .status::before { width: 14px; height: 14px; }
 .ct__lbl { margin-top: 30px; font-size: 17px; font-weight: 700; }
@@ -530,6 +555,7 @@ a.is-wait { cursor: progress; }
 .ct__cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 34px; }
 .ct__cta .btn { font-size: 20px; max-width: 100%; }
 .ct__cta .btn span { overflow-wrap: anywhere; } /* the email address breaks rather than push the page sideways */
+.ct__cta li, .cater__call { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; max-width: 100%; }
 
 .faq { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 32px 64px; padding: clamp(72px, 8vw, 120px) var(--pad); }
 .faq__h { grid-column: 1 / -1; font-size: clamp(64px, 8vw, 128px); }
@@ -646,6 +672,7 @@ a.is-wait { cursor: progress; }
   .foot { padding-bottom: 110px; }
   .foot__cols { grid-template-columns: 1fr 1fr; gap: 28px 20px; }
   .foot__halal { grid-column: 1 / -1; }
+  .foot__cols { reading-flow: grid-order; }
   .foot__strap { font-size: 12.6vw; }
 
   .mbar {
@@ -720,6 +747,10 @@ a.is-wait { cursor: progress; }
   .ah__h { font-size: 15vw; }
 }
 
+@media (max-width: 599px) {
+  .foot__cols > .foot__find { grid-column: 1 / -1; order: -1; }
+}
+
 @media (max-width: 389px) {
   .nav__st { flex-basis: 100%; margin-left: 0; padding-bottom: 12px; }
 }
@@ -730,6 +761,9 @@ a.is-wait { cursor: progress; }
   .lock__sub { font-size: 14px; }
   .top__order { font-size: 17px; gap: 6px; padding: 10px 10px 9px; }
   .top__order .ico { width: 20px; height: 20px; }
+  .hero__lab { padding: 8px 10px 7px; }
+  .hero__lab .d { font-size: 19px; } /* «Smashburgers» whole in a half-width tile */
+  .ct__cta .btn, .cater__call .btn { padding-inline: 14px; gap: 8px; }
 }
 
 @media (max-width: 899px) {

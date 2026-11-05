@@ -10,7 +10,7 @@ fonts (Google Fonts), colours and hero photos (by URL from images.unsplash.com):
 
 | File | Size | What |
 |---|---|---|
-| `og.png` | 1200×630 | the share image: the lockup, «REAL PIZZA. REAL SMASHBURGERS.», the red rule, «Made with Passion.», the halal mark and the street on black; the hero pizza and smashburger at right over the tricolour |
+| `og.png` | 1200×630 | the share image: the lockup, the hero's two lines («REAL PIZZA. REAL SMASH BURGER.»), the red rule, «Made with Passion.», the halal mark and «Richmond, BC» on black; the hero pizza and smashburger at right over the tricolour |
 | `apple-touch-icon.png` | 180×180 | «DOUGH» over the tricolour over «VINCI», cream on black |
 | `favicon.png` | 64×64 | «DV» over the tricolour |
 

@@ -37,32 +37,41 @@ No gold anywhere, no gradients but the photos' own light, no pastels.
 ## Pieces
 
 - **Header**: the wordmark «DOUGH-VINCI» over «Pizza & Burger» and a short tricolour; Menu, About Us, Contact and the
-  live status beside Contact («Opening Dec 5», later «Open now · until 11 pm»); a red «Order Now» with a line scooter.
+  live status beside Contact («Opening early Dec», later «Open now · until 10 pm»); a red «Order Now» with a line scooter.
   On phones it is two rows, and a sticky Order bar slides up once the hero has gone, while the header button steps
   aside; on wider screens the header button stays at all times.
-- **Hero**: the halal mark and the opening date, «REAL PIZZA. REAL SMASHBURGERS.» (two lines sized to the column), a
+- **Hero**: the halal mark and the opening with the city («Opening early December · Richmond», its Sample label kept
+  beside it), «REAL PIZZA. REAL SMASH BURGER.» (two lines sized to the column; «Smash Burger» is the owner's wording
+  for the headline, while the menu section, the photo label and his pillar say «Smashburgers»), a
   straight red rule, «Made with Passion.», the owner's sub-line and his two buttons on black at left; the pizza and the
   smashburger side by side at right, each labelled and linked to its menu section, with the tricolour at their foot. The
   smashburger tile is a close crop of the patties, their lacy edge and the cheese. No scrim on the photos.
 - **Order band**: full-width red, «ORDER», the four apps by name as text, Call for pickup and the halal mark. Every page
-  has it (it is where Order links land without JavaScript); the Order sheet repeats it with «No payment on this site».
+  has it (it is where Order links land without JavaScript); the Order sheet repeats it with Eat in and «No payment on
+  this site», and fits a laptop screen of 800 px without scrolling.
 - **Start here**: four dishes with photos at one 4:5 crop. **Combos**: the basil band, each combo linked to its place
   on the menu. **Leonardo**: Codex Atlanticus f. 29r in its own ink on a cream panel with its credit, a supporting
   figure about a third of the width (two thirds of a phone) beside the larger line «The pizza is the art. The
   smashburger is the engineering.»; one per page at most (Home and About Us). **Halal and location**: the cheese band,
-  in ink, the halal statement as its two sentences.
-- **Menu**: a one-line head, so the pizzas show on the first screen, then a sticky bar of sections and three filters
+  in ink, the halal statement, then the address as its big heading, the city and postal code, and the opening.
+- **Menu**: a one-line head, so the pizzas show on the first screen, then a sticky bar of sections (Pizza,
+  Smashburgers, Pasta, Sides, Desserts, Drinks, Combos) and three filters
   (Vegetarian, Spicy, Gluten-free option). Each section has a photo strip of its own photographed dishes only (one
   ratio and one composition per strip; a section's single photo fills the width; a small section's only photo sits
   beside its board), then the cream price board: name, leader dots, prices under 12″ and 16″ heads, one
   line of ingredients, then calories with what they are for, allergens and diet as text. Text-only dishes are simply
-  rows on the board. While a filter is on, an emptied column goes and the counts say how many dishes show.
+  rows on the board. A diet mark never breaks, and no meta line starts with its «·». While a filter is on, an emptied column goes and the counts say how many dishes show.
 - **Dish sheet**: a drawer from the right (full screen on phones, photo on top): sizes and prices with leader dots, a
   big Order button under them, ingredients, a five-cell nutrition grid with its basis, Contains and May contain, the
   sample and photo notes. The same article is each dish's own page.
-- **Footer**: «GREAT FOOD. GREAT TASTE. EVERY BITE.», the order, location and page lists, the halal mark and statement,
-  the huge wordmark, the preview and photo notes (linking the Photo credits page), and one mirrored line
-  (aria-hidden), the only mirror writing.
+- **Contact**: the address as its heading, the city and postal code, the parking and eat-in lines, the opening, the
+  hours table, Directions, Call and email (a Sample label sits inside its button); the cheese band in three columns on
+  wide screens: the halal mark, the statement, then the certification and the detail; the questions.
+- **Footer**: «GREAT FOOD. GREAT TASTE. EVERY BITE.», the order, location and page lists (the address on two lines,
+  «No. 1» and the postal code never split, the email breaking only after its @; under 600 px «Find us» takes the
+  full row first), the halal mark and statement,
+  the huge wordmark, the preview and photo notes (linking the Photo credits page), and one mirrored line, «Dough-Vinci,
+  Richmond» (aria-hidden), the only mirror writing.
 
 ## Photos
 

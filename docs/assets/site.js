@@ -11,9 +11,10 @@
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const canIO = "IntersectionObserver" in window;
 
-  /* ── open now, in Vancouver time ──
-     Before the opening date: «Opening Dec 5». While the site is a preview after that: no open-now claim, because the
-     hours are samples. Live: «Open now · until 11 pm», «Closed · opens 11 am». ?now=2026-12-11T19:30 checks a moment. */
+  /* ── open now, in Pacific time ──
+     Before the opening date: «Opening» and the date, or only its part of the month («Opening early Dec») while the date
+     is approximate, with no weekday or day. While the site is a preview after that: no open-now claim. Live: «Open now · until 10 pm», «Closed · opens
+     11 am». ?now=2026-12-11T19:30 checks a moment. */
   const DAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
   const fmtT = (hm) => { let [h, m] = hm.split(":").map(Number); const s = h < 12 ? "am" : "pm"; h = h % 12 || 12; return `${h}${m ? ":" + String(m).padStart(2, "0") : ""} ${s}`; };
   const toMin = (hm) => { const [h, m] = hm.split(":").map(Number); return h * 60 + m; };
@@ -30,8 +31,13 @@
   }
   const fmtDate = (iso, long) => {
     const [y, m, d] = iso.split("-").map(Number);
+    const at = new Date(Date.UTC(y, m - 1, d, 12));
+    if (D.approx) {
+      const mon = new Intl.DateTimeFormat("en-US", { timeZone: "UTC", month: long ? "long" : "short" }).format(at);
+      return d <= 10 ? `early ${mon}` : d <= 20 ? `mid-${mon}` : `late ${mon}`;
+    }
     const opts = { timeZone: "UTC", month: "short", day: "numeric" }; if (long) opts.weekday = "short";
-    return new Intl.DateTimeFormat("en-US", opts).format(new Date(Date.UTC(y, m - 1, d, 12)));
+    return new Intl.DateTimeFormat("en-US", opts).format(at);
   };
   const hoursFor = (day) => (D.hours || []).find((h) => h.days.includes(day));
   function openState() {
@@ -211,9 +217,11 @@
   togs.forEach((t) => t.addEventListener("click", () => { t.setAttribute("aria-pressed", String(t.getAttribute("aria-pressed") !== "true")); applyFilters(); }));
   if (clear) clear.addEventListener("click", () => { togs.forEach((t) => t.setAttribute("aria-pressed", "false")); applyFilters(); togs[0].focus(); });
 
-  /* ── menu: the section tabs follow the scroll ── */
+  /* ── menu: the section tabs follow the scroll ──
+     The current section is the last one whose top has passed 35% of the screen, or the first when none has, so the bar
+     is right after any scroll, back to the top included. */
   const tabsNav = $("[data-tabs]");
-  if (tabsNav && canIO) {
+  if (tabsNav) {
     const tabs = $$("a[data-tab]", tabsNav);
     const sc = $(".cats__nav", tabsNav);
     let cur = "";
@@ -225,8 +233,17 @@
       tabs.forEach((x) => { if (x === t) x.setAttribute("aria-current", "true"); else x.removeAttribute("aria-current"); });
       if (left !== null) sc.scrollTo({ left, behavior: reduce ? "auto" : "smooth" });
     };
-    const spy = new IntersectionObserver((es) => es.forEach((en) => { if (en.isIntersecting) mark(en.target.id); }),
-      { rootMargin: "-35% 0px -60% 0px" });
-    $$("[data-spy]").forEach((s) => spy.observe(s));
+    const secs = $$("[data-spy]");
+    let ticking = false;
+    const pick = () => {
+      ticking = false;
+      const line = innerHeight * 0.35;
+      let id = secs[0] ? secs[0].id : "";
+      for (const s of secs) { if (s.getBoundingClientRect().top <= line) id = s.id; else break; }
+      if (id) mark(id);
+    };
+    addEventListener("scroll", () => { if (!ticking) { ticking = true; requestAnimationFrame(pick); } }, { passive: true });
+    addEventListener("resize", pick);
+    pick();
   }
 })();

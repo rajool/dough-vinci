@@ -206,9 +206,16 @@ def halal_mark(cls: str = "") -> str:
 
 
 def halal_statement() -> str:
-    """«All our meat is halal.» and «No pork, no alcohol.» each on its own line, so the negation stays with its noun."""
+    """The halal statement, each sentence on its own line."""
     parts = re.split(r"(?<=\.)\s+", SITE["halal"]["statement"])
     return " ".join(f"<span>{e(x)}</span>" for x in parts)
+
+
+def certification() -> str:
+    """«Halal certification by the BC Muslim Association (BCMA).», from `halal.certifier`; no logo until the owner
+    sends the certificate's."""
+    h = SITE["halal"]
+    return f"Halal certification by {h['certifier']}." if h.get("certifier") else ""
 
 
 def tricolour(cls: str) -> str:
@@ -278,12 +285,40 @@ def opening() -> dt.date | None:
     return dt.date.fromisoformat(od) if od else None
 
 
+def opening_approx() -> bool:
+    """`opening_approx`: the owner gave the date as approximate, so no page shows its weekday or day number."""
+    return bool(SITE.get("opening_approx"))
+
+
+def part_of_month(d: dt.date, month: str) -> str:
+    """«early December», «mid-December», «late December»: an approximate date said the way a person would."""
+    return f"early {month}" if d.day <= 10 else f"mid-{month}" if d.day <= 20 else f"late {month}"
+
+
 def opening_short(d: dt.date) -> str:
-    return f"{d:%b} {d.day}"
+    return part_of_month(d, f"{d:%b}") if opening_approx() else f"{d:%b} {d.day}"
 
 
 def opening_long(d: dt.date) -> str:
-    return f"{d:%a}, {d:%b} {d.day}"
+    return part_of_month(d, f"{d:%B}") if opening_approx() else f"{d:%a}, {d:%b} {d.day}"
+
+
+def opening_phrase(d: dt.date) -> str:
+    """What `{opening}` in a FAQ answer becomes: «in early December 2026», or «on Tuesday, December 1»."""
+    return f"in {part_of_month(d, f'{d:%B}')} {d.year}" if opening_approx() else f"on {d:%A}, {d:%B} {d.day}"
+
+
+def keep(s: str) -> str:
+    """Escaped text whose «No. 1» and postal code never break across lines."""
+    out = e(s).replace("No. ", "No.&nbsp;")
+    pc = SITE["contact"].get("postal_code", "")
+    return out.replace(e(pc), e(pc).replace(" ", "&nbsp;")) if pc else out
+
+
+def email_html(addr: str) -> str:
+    """An email address that may break only after the @, never at the hyphen of the domain."""
+    user, _, dom = addr.partition("@")
+    return f'{e(user)}@<wbr><span class="nw">{e(dom)}</span>'
 
 
 def tel() -> str:
@@ -294,16 +329,67 @@ def preview() -> bool:
     return bool(SITE.get("preview"))
 
 
-def sample_tag(what: str = "Sample") -> str:
+def confirmed(field: str) -> bool:
+    """Whether the owner has confirmed a field (`confirmed` in site.json); the menu follows menu.json `sample`."""
+    if field == "menu":
+        return not MENU.get("sample")
+    return bool(SITE.get("confirmed", {}).get(field))
+
+
+def is_sample(field: str) -> bool:
+    """A datum shown as a sample: the preview is on and the owner has not confirmed it."""
+    return preview() and not confirmed(field)
+
+
+def sample_tag(field: str, what: str = "Sample") -> str:
     """A quiet label beside a datum a customer would rely on, while it is still a sample."""
-    return f'<span class="smp">{e(what)}</span>' if preview() else ""
+    return f'<span class="smp">{e(what)}</span>' if is_sample(field) else ""
+
+
+def and_list(xs: list[str]) -> str:
+    return xs[0] if len(xs) == 1 else ", ".join(xs[:-1]) + " and " + xs[-1]
+
+
+# what each field is called in the lists of samples: (in the header, in a sentence)
+SAMPLE_WORDS = {
+    "menu": (["the menu", "prices"], ["the menu, prices, calories and allergens"]),
+    "location": (["place"], ["the location"]),
+    "hours": (["hours"], ["the hours"]),
+    "phone": (["phone"], ["the phone number"]),
+    "email": ([], ["the email address"]),
+    "opening_date": (["date"], ["the opening date"]),
+    "halal": ([], ["the halal details"]),
+    "delivery": ([], ["the delivery-app links"]),
+}
+
+
+def samples(short: bool = False) -> list[str]:
+    """The fields still shown as samples, in words, from `confirmed` (the photos have their own sentence)."""
+    out: list[str] = []
+    for field, (s_words, l_words) in SAMPLE_WORDS.items():
+        if is_sample(field):
+            words = s_words if short else l_words
+            if field == "opening_date" and opening_approx() and not short:
+                words = ["the exact opening day"]
+            out += words
+    return out
+
+
+def soon() -> bool:
+    od = opening()
+    return bool(od and TODAY < od)
+
+
+def date_tag() -> str:
+    """The Sample label beside the opening date, while there is one to show and it is unconfirmed."""
+    return sample_tag("opening_date", "Sample date") if soon() else ""
 
 
 def status(variant: str) -> str:
     """The open-now line, as true at build time; site.js keeps it live. Before the opening date it gives the date;
     while the preview is on after that it says nothing about being open, because the hours are samples."""
-    od = opening()
-    if od and TODAY < od:
+    if soon():
+        od = opening()
         text = f"Opening {opening_short(od)}" if variant == "short" else f"Opening {opening_long(od)}"
         state = "soon"
     else:
@@ -329,7 +415,7 @@ def order_band(level: int = 2) -> str:
   <div class="ob__in">
     <h{level} class="ob__h d" id="ob-title">Order</h{level}>
     <div class="ob__apps"><p class="ob__lbl">Delivery or pickup</p><ul class="ob__list">{apps_list("ob")}</ul></div>
-    <div class="ob__call"><p class="ob__lbl">Call for pickup {sample_tag()}</p><a class="ob__tel" href="tel:{tel()}">{e(c["phone"])}</a></div>
+    <div class="ob__call"><p class="ob__lbl">Call for pickup {sample_tag("phone")}</p><a class="ob__tel" href="tel:{tel()}">{e(c["phone"])}</a></div>
     {halal_mark("halal--band")}
   </div>
 </section>'''
@@ -342,7 +428,7 @@ def hours_table(cls: str = "hours") -> str:
         rows.append(f'<tr class="{today.strip()}" data-days="{" ".join(h["days"])}"><th scope="row">{day_range(h["days"])}'
                     f'<span class="hours__today"{"" if today else " hidden"}> · today</span></th>'
                     f'<td>{fmt_time(h["open"])} – {fmt_time(h["close"])}</td></tr>')
-    return f'<table class="{cls}"><caption class="sr">Opening hours, Vancouver time</caption><tbody>{"".join(rows)}</tbody></table>'
+    return f'<table class="{cls}"><caption class="sr">Opening hours, Pacific time</caption><tbody>{"".join(rows)}</tbody></table>'
 
 
 def leonardo(heading: str = "p") -> str:
@@ -400,7 +486,7 @@ def board_row(item: dict, root: str) -> str:
   <a class="row__a" href="{root}menu/{item['id']}/" data-dish="{item['id']}">
     <span class="row__top"><span class="row__name">{e(item['name'])}</span><span class="row__dots" aria-hidden="true"></span><span class="row__ps">{prices}</span></span>
     <span class="row__short">{e(item['short'])}</span>
-    <span class="row__meta">{'<span class="sep" aria-hidden="true"> · </span>'.join(meta)}</span>
+    <span class="row__meta">{'<span class="sep" aria-hidden="true">&nbsp;· </span>'.join(meta)}</span>
   </a>
 </li>'''
 
@@ -590,8 +676,9 @@ def header(root: str, current: str) -> str:
     for label, href in NAV:
         cur = ' aria-current="page"' if href == current else ""
         links.append(f'<li><a href="{root}{href}"{cur}>{label}</a></li>')
-    pv = ('<span class="pv">Preview<span class="pv__more"> · the menu, prices, date and place are samples</span></span>'
-          if preview() else "")
+    left = samples(short=True)
+    more = f'<span class="pv__more"> · {and_list(left)} {"is a sample" if len(left) == 1 else "are samples"}</span>' if left else ""
+    pv = f'<span class="pv">Preview{more}</span>' if preview() else ""
     home_cur = ' aria-current="page"' if current == "" else ""
     return f'''<header class="top" data-top>
   <a class="lock" href="{home}"{home_cur}>{wordmark()}<span class="lock__sub">Pizza &amp; Burger {tricolour("tri--lock")}</span><span class="sr">, home</span></a>
@@ -605,15 +692,16 @@ def footer(root: str) -> str:
     c = SITE["contact"]
     apps = "".join(f'<li><a href="{e(d["url"])}" target="_blank" rel="noopener">{e(d["name"])}<span class="sr"> (opens in a new tab)</span></a></li>'
                    for d in SITE["delivery"])
-    fine = ("Preview: the menu, prices, calories, allergens, halal details, location, phone, email, hours and opening "
-            "date are samples until Dough-Vinci confirms them. " if preview() else "")
+    left = samples()
+    fine = (f"Preview: {and_list(left)} {'is a sample' if len(left) == 1 else 'are samples'} until Dough-Vinci "
+            "confirms them. " if preview() and left else "")
     authors = sorted({p["author"] for p in PHOTOS.values()})
     return f'''<footer class="foot">
   <p class="foot__strap d">{e(SITE["strap"])}</p>
   <div class="foot__cols">
     <div><h2 class="foot__h">Order</h2><ul class="foot__list">{apps}<li><a href="tel:{tel()}">Call for pickup</a></li></ul></div>
-    <div><h2 class="foot__h">Find us</h2><ul class="foot__list"><li>{e(c["address"])}</li><li><a href="tel:{tel()}">{e(c["phone"])}</a></li>
-      <li><a href="mailto:{e(c["email"])}">{e(c["email"])}</a></li><li><a href="{root}contact/#hours">Hours</a></li></ul></div>
+    <div class="foot__find"><h2 class="foot__h">Find us</h2><ul class="foot__list"><li class="foot__addr">{keep(c["street_address"])}<br>{keep(c["locality"])}</li><li><a href="tel:{tel()}">{e(c["phone"])}</a></li>
+      <li><a href="mailto:{e(c["email"])}">{email_html(c["email"])}</a></li><li><a href="{root}contact/#hours">Hours</a></li></ul></div>
     <div><h2 class="foot__h">Dough-Vinci</h2><ul class="foot__list"><li><a href="{root}menu/">Menu</a></li><li><a href="{root}about/">About Us</a></li>
       <li><a href="{root}contact/">Contact</a></li><li><a href="{root}allergens/">Allergens &amp; nutrition</a></li></ul></div>
     <div class="foot__halal">{halal_mark("halal--foot")}<p>{e(SITE["halal"]["statement"])}</p></div>
@@ -621,7 +709,7 @@ def footer(root: str) -> str:
   <p class="foot__wm d" aria-hidden="true">Dough<span class="wm__dash">-</span>Vinci</p>
   <div class="foot__fine">
     <p>{fine}Photos: {" and ".join(e(a) for a in authors)} on Unsplash, stock images until our own shoot (<a href="{root}credits/">credits</a>).</p>
-    <p class="mirror" aria-hidden="true">Dough-Vinci, Commercial Drive</p>
+    <p class="mirror" aria-hidden="true">Dough-Vinci, {e(c["city"])}</p>
   </div>
 </footer>'''
 
@@ -629,7 +717,8 @@ def footer(root: str) -> str:
 def dialogs(root: str) -> str:
     c = SITE["contact"]
     links_note = (" The app links open each app’s home page until our own store pages are live."
-                  if preview() else "")
+                  if is_sample("delivery") else "")
+    eat_in = (f'<p class="os__lbl">Eat in</p><p class="os__eat">Tables and free parking at {keep(c["street_address"])}.</p>' if SITE.get("confirmed", {}).get("dine_in") else "")
     return f'''<dialog class="sheet sheet--order" id="order-dialog" aria-labelledby="order-dialog-title">
   <div class="sheet__in os">
     <button class="x" type="button" data-close><span class="sr">Close</span></button>
@@ -638,8 +727,8 @@ def dialogs(root: str) -> str:
     <p class="os__lbl">Delivery or pickup in the app</p>
     <ul class="os__list">{apps_list("os")}</ul>
     <p class="os__lbl">Pickup by phone</p>
-    <ul class="os__list"><li><a href="tel:{tel()}"><span class="os__name">Call for pickup</span><span class="os__tel">{e(c["phone"])} {sample_tag()}</span></a></li></ul>
-    <div class="os__foot">{halal_mark("halal--sheet")}<p>No payment on this site.{links_note}</p></div>
+    <ul class="os__list"><li><a href="tel:{tel()}"><span class="os__name">Call for pickup</span><span class="os__tel">{e(c["phone"])} {sample_tag("phone")}</span></a></li></ul>
+    {eat_in}    <div class="os__foot">{halal_mark("halal--sheet")}<p>No payment on this site.{links_note}</p></div>
   </div>
 </dialog>
 <dialog class="sheet sheet--dish" id="dish-dialog" aria-labelledby="dish-dialog-title">
@@ -658,23 +747,27 @@ def mbar() -> str:
 
 
 def jsonld() -> str:
-    """While `preview` is on, only what is true today: the name, the idea and the city. The phone, hours and street
-    address are samples, so they join the markup only when the preview is switched off. No Menu markup while the menu
-    is a sample."""
+    """Only what is true: the street address, hours, phone and email join the markup once the owner has confirmed
+    each (`confirmed`) or the preview is switched off. No Menu markup while the menu is a sample."""
     c = SITE["contact"]
     ld = {
         "@context": "https://schema.org", "@type": "Restaurant", "name": SITE["name"],
         "url": SITE["base_url"], "image": SITE["base_url"] + "og.png", "logo": SITE["base_url"] + "apple-touch-icon.png",
-        "description": SITE["description"], "slogan": SITE["tagline"], "servesCuisine": ["Pizza", "Burgers"],
+        "description": SITE["description"], "slogan": SITE["tagline"], "servesCuisine": ["Pizza", "Burgers", "Pasta"],
         "address": {"@type": "PostalAddress", "addressLocality": c["city"], "addressRegion": c.get("region", "BC"),
                     "addressCountry": "CA"},
     }
-    if not preview():
+    if not is_sample("phone"):
         ld["telephone"] = tel()
+    if not is_sample("email"):
+        ld["email"] = c["email"]
+    if not is_sample("location"):
         if c.get("street_address"):
             ld["address"]["streetAddress"] = c["street_address"]
         if c.get("postal_code"):
             ld["address"]["postalCode"] = c["postal_code"]
+        ld["hasMap"] = c["maps_url"]
+    if not is_sample("hours"):
         ld["openingHoursSpecification"] = [{"@type": "OpeningHoursSpecification", "dayOfWeek": [DAY_LONG[d] for d in h["days"]],
                                             "opens": h["open"], "closes": h["close"]} for h in SITE["hours"]]
     if not MENU.get("sample"):
@@ -683,8 +776,8 @@ def jsonld() -> str:
 
 
 def page_data() -> str:
-    d = {"tz": SITE.get("timezone"), "opening": SITE.get("opening_date") or "", "hours": SITE["hours"],
-         "preview": preview()}
+    d = {"tz": SITE.get("timezone"), "opening": SITE.get("opening_date") or "", "approx": opening_approx(),
+         "hours": SITE["hours"], "preview": preview()}
     return '<script type="application/json" id="dv-data">' + json.dumps(d, ensure_ascii=False, separators=(",", ":")) + "</script>"
 
 
@@ -746,8 +839,8 @@ def page(rel: str, *, title: str, description: str, main: str, current: str | No
 # ───────────────────────────────────────────────────────────── pages
 
 # the share image (tools/render_images.py)
-OG_ALT = ("Dough-Vinci Pizza & Burger: «Real Pizza. Real Smashburgers. Made with Passion.» beside a margherita and a "
-          "smashburger close-up, with the halal mark.")
+OG_ALT = (f"Dough-Vinci Pizza & Burger: «{SITE['tagline']}» beside a margherita and a smashburger close-up, with the "
+          f"halal mark and {SITE['contact']['city']}, {SITE['contact']['region']}.")
 HERO_SIZES = "(min-width: 900px) 30vw, 50vw"
 HERO_RATIO = 2 / 3
 
@@ -756,7 +849,7 @@ def build_home() -> None:
     root = ""
     od = opening()
     c = SITE["contact"]
-    when = f"Opening {opening_long(od)}" if od and TODAY < od else "Now open"
+    when = f"Opening {opening_long(od)}" if soon() else "Now open"
     hero = SITE["hero"]
     tiles = []
     for sid in SITE.get("signatures", []):
@@ -769,7 +862,7 @@ def build_home() -> None:
 </a></li>''')
     main = fill(tpl("home.html"), {
         "root": root,
-        "tag": f'{halal_mark("halal--tag")}<span class="tag__t">{e(when)} · {e(c["street"])}</span>{sample_tag()}',
+        "tag": f'{halal_mark("halal--tag")}<span class="tag__g"><span class="tag__t">{e(when)} · {e(c["city"])}</span>{date_tag()}</span>',
         "title_1": e(hero["title_lines"][0]), "title_2": e(hero["title_lines"][1]),
         "sub": e(hero["sub"]),
         "line": e(" ".join(p + "." for p in SITE["pillars"])),
@@ -786,9 +879,9 @@ def build_home() -> None:
         "leonardo": leonardo("p"),
         "halal": halal_mark("halal--big"),
         "halal_statement": halal_statement(),
-        "where": e(c["map_label"]), "hood": e(c["neighbourhood"]), "city": e(c["city"]),
-        "status": status("long"), "maps": e(c["maps_url"]), "tel": tel(), "phone": e(c["phone"]),
-        "smp": sample_tag("Sample location and hours"),
+        "where": keep(c["map_label"]), "locality": keep(c["locality"]),
+        "status": status("long"), "date_tag": date_tag(), "maps": e(c["maps_url"]),
+        "smp": sample_tag("location", "Sample location"),
     })
     page("index.html", title=SITE["title"], description=SITE["description"], main=main, current="", body_class="home",
          head_extra=preload("hero-pizza", HERO_SIZES, HERO_RATIO, max_w=1200), jsonld_on=True)
@@ -807,7 +900,7 @@ def build_menu() -> None:
         "combo_order": icon("scooter"), "count": len(ORDER_IDS),
         "allergen_note": e(MENU["allergen_note"]),
     })
-    page("menu/index.html", title="Menu", description="Pizza, smashburgers, sides, desserts and drinks at Dough-Vinci, "
+    page("menu/index.html", title="Menu", description="Pizza, smashburgers, pasta, sides, desserts and drinks at Dough-Vinci, "
          "with prices, calories and allergens for every dish." + (" Sample menu." if MENU.get("sample") else ""),
          main=main, current="menu/", body_class="menu-page", head_extra=menu_preload())
     for cat in CATS:
@@ -885,7 +978,7 @@ def build_allergens() -> None:
 def faq() -> str:
     """`{opening}` in an answer becomes the opening date, so the FAQ and the status never disagree."""
     od = opening()
-    when = f"{od:%A}, {od:%B} {od.day}" if od else "a date we will post here soon"
+    when = opening_phrase(od) if od else "soon, on a date we will post here"
     return "".join(f'<details class="faq__q"><summary>{e(q["q"])}</summary><p>{e(q["a"].replace("{opening}", when))}</p></details>'
                    for q in SITE["faq"])
 
@@ -894,20 +987,24 @@ def build_contact() -> None:
     root = "../"
     c = SITE["contact"]
     h = SITE["halal"]
-    cert = (f'<p class="hb__cert">Certified by {e(h["certifier"])}.</p>' if h.get("certifier") else "")
+    cert = (f'<p class="hb__cert">{e(certification())}</p>' if h.get("certifier") else "")
     main = fill(tpl("contact.html"), {
-        "root": root, "where": e(c["map_label"]), "address": e(c["address"]), "hood": e(c["neighbourhood"]),
-        "status": status("long"), "hours": hours_table(), "maps": e(c["maps_url"]), "tel": tel(),
-        "phone": e(c["phone"]), "email": e(c["email"]), "pin": icon("pin"), "phone_i": icon("phone"),
+        "root": root, "where": keep(c["map_label"]), "locality": keep(c["locality"]),
+        "parking": e(c.get("parking", "")), "dine_in": e(c.get("dine_in", "")),
+        "status": status("long"), "date_tag": date_tag(), "hours": hours_table(), "maps": e(c["maps_url"]), "tel": tel(),
+        "phone": e(c["phone"]), "email": e(c["email"]), "email_label": email_html(c["email"]), "pin": icon("pin"), "phone_i": icon("phone"),
         "mail_i": icon("mail"),
         "photo": img("mona-lisa", "(min-width: 900px) 50vw, 100vw", 4 / 5, max_w=1200, eager=True, high=False, phone_ratio=4 / 3),
-        "smp": sample_tag("Sample location, phone and hours"),
+        "smp": sample_tag("location", "Sample location"), "smp_hours": sample_tag("hours", "Sample hours"),
+        # a Sample label sits inside its button, so it never reads as a control of its own
+        "smp_phone": sample_tag("phone"), "smp_email": sample_tag("email"),
         "halal": halal_mark("halal--big"), "halal_statement": halal_statement(), "cert": cert,
-        "halal_detail": e(h.get("detail", "")) + (" " + sample_tag("Sample details") if preview() else ""),
+        # the detail names dishes of the menu, so it is a sample while the menu is
+        "halal_detail": e(h.get("detail", "")) + (" " + sample_tag("menu", "Sample menu") if is_sample("menu") else ""),
         "faq": faq(), "catering_title": e(SITE["catering"]["title"]), "catering_text": e(SITE["catering"]["text"]),
     })
-    page("contact/index.html", title="Contact", description="Hours, directions, phone and email for Dough-Vinci on "
-         f"{c['street']}, {c['city']}, with our halal statement and answers to common questions.", main=main, current="contact/",
+    page("contact/index.html", title="Contact", description="Hours, directions, parking, phone and email for Dough-Vinci "
+         f"at {c['address']}, with our halal statement and answers to common questions.", main=main, current="contact/",
          body_class="contact-page", jsonld_on=True)
 
 
@@ -936,9 +1033,20 @@ NF_SIZES = "(min-width: 900px) 50vw, 100vw"
 
 def build_about() -> None:
     root = "../"
-    sample = ('<p class="ab__sample"><b>This site is a preview.</b> The menu, prices, calories, allergens, halal details, '
-              'location, phone, email, hours and opening date are samples until Dough-Vinci confirms them, and every '
-              'food photo is a stock image standing in until our own shoot.</p>') if preview() else ""
+    sample = ""
+    if preview():
+        left = samples()
+        known = [w for f, w in (("location", "location"), ("hours", "hours"), ("email", "email address"),
+                                ("halal", "halal statement")) if confirmed(f)]
+        parts = []
+        if known:
+            parts.append(f"The {and_list(known)} {'are' if len(known) > 1 or known == ['hours'] else 'is'} confirmed")
+        if left:
+            parts.append(f"{and_list(left)} {'is a sample' if len(left) == 1 else 'are samples'} until Dough-Vinci "
+                         "confirms them")
+        body = "; ".join(parts)
+        photos = (" Every food photo is a stock image standing in until our own shoot." if is_sample("photos") else "")
+        sample = f'<p class="ab__sample"><b>This site is a preview.</b> {body}.{photos}</p>' if body else ""
     main = fill(tpl("about.html"), {
         "root": root,
         "welcome": "".join(f"<p>{e(x)}</p>" for x in SITE["welcome"]),
@@ -1002,36 +1110,56 @@ def build_meta(pages: list[str]) -> None:
     c = SITE["contact"]
     hours = "; ".join(f"{day_range(h['days'])} {fmt_time(h['open'])}–{fmt_time(h['close'])}" for h in SITE["hours"])
     od = opening()
-    lines = [f"# {SITE['name']} {SITE['subtitle']}", "", f"> {SITE['tagline']} A halal pizza and smashburger restaurant "
-             f"on {c['street']}, {c['city']}.", ""]
+    ok = lambda f: not is_sample(f)  # noqa: E731  (a fact a machine reader may quote)
+    lines = [f"# {SITE['name']} {SITE['subtitle']}", "",
+             f"> {SITE['tagline']} A {'halal ' if ok('halal') else ''}pizza, smashburger and pasta restaurant "
+             f"{'coming to' if soon() else 'in'} {c['city']}, {c.get('region', 'BC')}.", ""]
+    left = samples() + (["the food photos (stock images)"] if is_sample("photos") else [])
+    if left:
+        lines += [f"This site is a preview. {and_list(left)[0].upper()}{and_list(left)[1:]} shown on it "
+                  f"{'is a sample' if len(left) == 1 else 'are samples'} until the restaurant confirms "
+                  f"{'it' if len(left) == 1 else 'them'}. Do not quote {'it' if len(left) == 1 else 'them'} as facts.", ""]
+    if od and soon() and opening_approx():
+        lines += [f"Opening: planned for {opening_long(od)} {od.year}; the exact day is not set yet.", ""]
+    elif od and soon() and ok("opening_date"):
+        lines += [f"Opening date: {od.isoformat()}.", ""]
+    facts = []
+    if ok("location"):
+        facts.append(f"- Location: {c['address']}")
+    if ok("parking") and c.get("parking"):
+        facts.append(f"- Parking: {c['parking']}")
+    if ok("hours"):
+        facts.append(f"- Hours (Pacific time): {hours}")
+    if ok("phone"):
+        facts.append(f"- Phone: {c['phone']}")
+    if ok("email"):
+        facts.append(f"- Email: {c['email']}")
+    if ok("halal"):
+        facts.append(f"- Halal: {SITE['halal']['statement']} {certification()}".rstrip())
+    if ok("dine_in") and c.get("dine_in"):
+        facts.append("- Service: eat in (the restaurant has seating), pickup and delivery.")
+    apps = ", ".join(f"[{d['name']}]({d['url']})" if ok("delivery") else d["name"] for d in SITE["delivery"])
+    facts.append(f"- Ordering: {apps}" + ("; or call for pickup" if ok("phone") else "") + ". No payment on this site.")
+    lines += facts + [""]
     pages_md = ["## Pages", "",
                 f"- [Menu]({base}menu/): every dish with price, calories, ingredients and allergens",
                 f"- [About Us]({base}about/): the owner's welcome and the idea behind the name",
-                f"- [Contact]({base}contact/): location, hours, phone, halal statement, FAQ",
+                f"- [Contact]({base}contact/): location, parking, hours, phone, halal statement, FAQ",
                 f"- [Allergens & nutrition]({base}allergens/): every dish by allergen with calories",
                 f"- [Photo credits]({base}credits/): the stock photos and the drawing, with their sources", ""]
-    if preview():
-        # while the menu, place, phone and hours are samples, none of them goes to a machine reader as a fact
-        lines = [f"# {SITE['name']} {SITE['subtitle']}", "", f"> {SITE['tagline']} A pizza and smashburger restaurant "
-                 f"coming to {c['city']}.", "",
-                 "This site is a preview. The menu, prices, calories, allergens, halal details, location, phone, hours "
-                 "and opening date shown on it are samples until the restaurant confirms them, and the photos are stock "
-                 "images. Do not quote them as facts.", ""] + pages_md
-        write("llms.txt", "\n".join(lines))
-        return
-    if od and TODAY < od:
-        lines += [f"Opening date: {od.isoformat()}.", ""]
-    lines += [f"- Location: {c['address']} ({c.get('neighbourhood', '')})", f"- Phone: {c['phone']}", f"- Hours: {hours}",
-              f"- Halal: {SITE['halal']['statement']}",
-              "- Ordering: " + ", ".join(f"[{d['name']}]({d['url']})" for d in SITE["delivery"]) + "; or call for pickup. "
-              "No payment on this site.", ""] + pages_md + ["## Menu", ""]
-    for cat in CATS:
-        lines.append(f"### {cat['name']}")
-        for it in cat["items"]:
-            ps = ", ".join(f"{p['label'].replace(chr(34), ' in')} {money(p['price'])}" if p["label"] != "Regular" else money(p["price"]) for p in it["prices"])
-            al = ", ".join(ALLERGENS[a] for a in it["allergens"]) or "none of the major allergens"
-            lines.append(f"- {it['name']}: {it['short']} {ps}. {it['kcal']:,} kcal ({it['portion']}). Contains: {al}.")
-        lines.append("")
+    lines += pages_md
+    if ok("menu"):
+        lines += ["## Menu", ""]
+        for cat in CATS:
+            lines.append(f"### {cat['name']}")
+            for it in cat["items"]:
+                ps = ", ".join(f"{p['label'].replace(chr(34), ' in')} {money(p['price'])}" if p["label"] != "Regular" else money(p["price"]) for p in it["prices"])
+                al = ", ".join(ALLERGENS[a] for a in it["allergens"]) or "none of the major allergens"
+                lines.append(f"- {it['name']}: {it['short']} {ps}. {it['kcal']:,} kcal ({it['portion']}). Contains: {al}.")
+            lines.append("")
+    else:
+        lines += ["The menu has three kinds of food: pizza, smashburgers and pasta, with sides, desserts and drinks. "
+                  "Its dishes are samples until the restaurant confirms them.", ""]
     write("llms.txt", "\n".join(lines))
 
 

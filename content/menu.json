@@ -460,6 +460,156 @@
       ]
     },
     {
+      "id": "pasta",
+      "name": "Pasta",
+      "italian": "Pasta",
+      "tagline": "Tossed in the pan and served hot.",
+      "items": [
+        {
+          "id": "spaghetti-pomodoro",
+          "name": "Spaghetti Pomodoro",
+          "short": "Spaghetti, San Marzano-style tomato, garlic, basil, grana.",
+          "ingredients": [
+            "spaghetti",
+            "San Marzano-style tomato sauce",
+            "garlic",
+            "basil",
+            "extra-virgin olive oil",
+            "vegetarian grana (microbial rennet)"
+          ],
+          "allergens": [
+            "wheat",
+            "milk"
+          ],
+          "may_contain": [],
+          "diet": [
+            "vegetarian",
+            "gluten-free-option"
+          ],
+          "kcal": 650,
+          "portion": "1 plate",
+          "nutrition": {
+            "protein_g": 21,
+            "carbs_g": 98,
+            "fat_g": 19,
+            "sodium_mg": 980
+          },
+          "prices": [
+            {
+              "label": "Regular",
+              "price": "15"
+            }
+          ]
+        },
+        {
+          "id": "penne-arrabbiata",
+          "name": "Penne Arrabbiata",
+          "short": "Penne in a spicy tomato and garlic sauce, parsley.",
+          "ingredients": [
+            "penne",
+            "tomato sauce",
+            "garlic",
+            "chili flakes",
+            "extra-virgin olive oil",
+            "parsley"
+          ],
+          "allergens": [
+            "wheat"
+          ],
+          "may_contain": [],
+          "diet": [
+            "vegan",
+            "spicy",
+            "gluten-free-option"
+          ],
+          "kcal": 620,
+          "portion": "1 plate",
+          "nutrition": {
+            "protein_g": 18,
+            "carbs_g": 100,
+            "fat_g": 16,
+            "sodium_mg": 900
+          },
+          "prices": [
+            {
+              "label": "Regular",
+              "price": "15"
+            }
+          ]
+        },
+        {
+          "id": "beef-bolognese",
+          "name": "Beef Bolognese",
+          "short": "Rigatoni, slow-cooked halal beef ragu, grana.",
+          "ingredients": [
+            "rigatoni",
+            "halal beef ragu (ground beef, tomato, onion, carrot, celery)",
+            "extra-virgin olive oil",
+            "grana (microbial rennet)",
+            "basil"
+          ],
+          "allergens": [
+            "wheat",
+            "milk"
+          ],
+          "may_contain": [],
+          "diet": [
+            "gluten-free-option"
+          ],
+          "kcal": 880,
+          "portion": "1 plate",
+          "nutrition": {
+            "protein_g": 42,
+            "carbs_g": 96,
+            "fat_g": 35,
+            "sodium_mg": 1250
+          },
+          "prices": [
+            {
+              "label": "Regular",
+              "price": "18"
+            }
+          ]
+        },
+        {
+          "id": "fettuccine-alfredo",
+          "name": "Fettuccine Alfredo",
+          "short": "Egg fettuccine, butter, cream, grana, black pepper.",
+          "ingredients": [
+            "egg fettuccine",
+            "butter",
+            "cream",
+            "vegetarian grana (microbial rennet)",
+            "black pepper",
+            "parsley"
+          ],
+          "allergens": [
+            "wheat",
+            "milk",
+            "egg"
+          ],
+          "may_contain": [],
+          "diet": [
+            "vegetarian"
+          ],
+          "kcal": 1100,
+          "portion": "1 plate",
+          "nutrition": {
+            "protein_g": 30,
+            "carbs_g": 96,
+            "fat_g": 66,
+            "sodium_mg": 1150
+          },
+          "prices": [
+            {
+              "label": "Regular",
+              "price": "17"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": "sides",
       "name": "Sides",
       "italian": "Contorni",
@@ -506,7 +656,7 @@
             "pretzel dough",
             "butter",
             "coarse salt",
-            "grainy mustard (made without wine)",
+            "grainy mustard",
             "garlic aioli"
           ],
           "allergens": [
@@ -612,7 +762,7 @@
             "romaine",
             "parmesan",
             "garlic croutons",
-            "Caesar dressing (anchovy, egg yolk, Dijon mustard made without wine)",
+            "Caesar dressing (anchovy, egg yolk, Dijon mustard)",
             "lemon"
           ],
           "allergens": [
@@ -687,11 +837,11 @@
         {
           "id": "tiramisu",
           "name": "Tiramisù",
-          "short": "Espresso-soaked ladyfingers, mascarpone, cocoa. No liqueur.",
+          "short": "Espresso-soaked ladyfingers, mascarpone, cocoa.",
           "ingredients": [
             "ladyfingers",
             "mascarpone",
-            "espresso (no liqueur)",
+            "espresso",
             "egg",
             "sugar",
             "cocoa"

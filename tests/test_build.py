@@ -18,11 +18,18 @@ DOCS = ROOT / "docs"
 PAGES = ["index.html", "menu/index.html", "about/index.html", "contact/index.html", "allergens/index.html",
          "credits/index.html", "404.html"]
 
-# bresaola is air-dried beef, so it needs no qualifier
-PORK = r"\b(pork|bacon|ham|prosciutto|lard|pancetta|guanciale|salami|pepperoni|sausages?|chorizo|gelatin)\b"
-PORK_OK = r"\bbeef\b|\bno pork\b|\bhas pork or alcohol\b"
-ALCOHOL = r"\b(alcohol|wine|beer|ale|lager|liqueur|rum|vodka|whisky|brandy|cocktails?|marsala|mirin)\b"
-ALCOHOL_OK = r"\bno (pork, no )?alcohol\b|\bno liqueur\b|\bwithout (wine|liqueur|alcohol)\b|\bpork or alcohol\b"
+# The owner asked the site to say nothing about pork or alcohol: none of these words appears anywhere in docs/, not
+# even as «no pork». A cured meat is named only beside «beef» (bresaola is air-dried beef, so it needs no qualifier).
+UNSAID = (r"\b(pork|bacon|ham|prosciutto|lard|pancetta|guanciale|chorizo|gelatin|alcohol\w*|wines?|beers?|ale|lager|"
+          r"liqueurs?|rum|vodka|whisky|brandy|cocktails?|marsala|mirin)\b")
+CURED = r"\b(salami|pepperoni|sausages?)\b"
+TEXT_FILES = (".html", ".txt", ".xml", ".js", ".css", ".webmanifest", ".json")
+
+
+def plain(text: str) -> str:
+    """Page text with the no-break marks of addresses and emails taken out (`keep` and `email_html` in build.py)."""
+    return text.replace("&nbsp;", " ").replace("<wbr>", "").replace('<span class="nw">', "")
+WEEKDAY = r"\b(Mon|Tue|Wed|Thu|Fri|Sat|Sun)(day|sday|nesday|rsday|urday)?\b"
 
 
 def load_build():
@@ -268,7 +275,7 @@ class BuiltSite(unittest.TestCase):
     def test_owner_hero(self):
         home = self.read("index.html")
         hero = re.search(r'<section class="hero".*?</section>', home, re.S).group(0)
-        for needle in ("Real Pizza.", "Real Smashburgers.", "Made with Passion.",
+        for needle in ("Real Pizza.", "Real Smash Burger.", "Made with Passion.",
                        "Fresh Ingredients. Flat-Rolled Pizza. Signature Smashburgers.", "<span>Order Now</span>",
                        "<span>Explore Our Menu</span>", 'class="hero__rule"', 'class="tri tri--hero"',
                        'href="menu/#pizza"', 'href="menu/#smash"'):
@@ -308,23 +315,29 @@ class BuiltSite(unittest.TestCase):
         faq = next(q for q in self.site["faq"] if "halal" in q["q"].lower())
         self.assertIn(html.escape(faq["a"]), contact)
         self.assertIn("Noto+Kufi+Arabic", home, "the Arabic word in an Arabic face from Google Fonts")
-        if not h.get("certifier"):
-            self.assertNotIn("Certified by", contact)
+        self.assertNotIn("Certified by", contact, "the site certifies nothing it cannot show")
+        if h.get("certifier"):
+            cert = f"Halal certification by {h['certifier']}."
+            self.assertIn(f'<p class="hb__cert">{html.escape(cert)}</p>', contact)
+            self.assertIn(cert, self.read("llms.txt"))
+        self.assertNotIn("BCMA logo", contact)
+        self.assertFalse(h.get("certifier_logo"), "no certifier logo until the owner sends it")
 
-    def test_no_pork_or_alcohol_without_a_qualifier(self):
-        files = list(DOCS.rglob("*.html")) + [DOCS / "llms.txt"]
+    def test_nothing_said_about_pork_or_alcohol(self):
+        """Every text file in docs/ (pages, alt text, meta, JSON-LD, llms.txt, the dish sheets, the script)."""
+        files = [f for f in DOCS.rglob("*") if f.is_file() and f.suffix in TEXT_FILES]
+        self.assertGreater(len(files), 30)
         for f in files:
-            pg = parse(f) if f.suffix == ".html" else None
-            chunks = pg.text if pg else f.read_text().splitlines()
-            if f.name == "dishes.html":
-                chunks = re.sub(r"<[^>]+>", "\n", f.read_text()).splitlines()
-            for chunk in chunks:
-                for s in re.split(r"(?<=[.!?])\s+", html.unescape(chunk)):
-                    low = s.lower()
-                    if re.search(PORK, low):
-                        self.assertRegex(low, PORK_OK, f"{f}: {s!r}")
-                    if re.search(ALCOHOL, low):
-                        self.assertRegex(low, ALCOHOL_OK, f"{f}: {s!r}")
+            text = html.unescape(f.read_text(encoding="utf-8"))
+            m = re.search(UNSAID, text, re.I)
+            self.assertIsNone(m, f"{f}: {text[max(0, m.start() - 60):m.end() + 30]!r}" if m else "")
+            for chunk in re.sub(r"<[^>]+>", "\n", text).splitlines():
+                for sent in re.split(r"(?<=[.!?])\s+", chunk):
+                    if re.search(CURED, sent, re.I):
+                        self.assertRegex(sent.lower(), r"\bbeef\b", f"{f}: {sent!r}")
+        for name in ("site.json", "menu.json", "photos.json"):
+            self.assertIsNone(re.search(UNSAID, (ROOT / "content" / name).read_text(encoding="utf-8"), re.I), name)
+        self.assertEqual(self.site["halal"]["statement"], "All our meat is halal.")
 
     def test_bresaola_renamed_and_text_only(self):
         for f in list(DOCS.rglob("*.html")) + list((ROOT / "content").glob("*.json")) + [DOCS / "llms.txt", DOCS / "sitemap.xml"]:
@@ -333,23 +346,107 @@ class BuiltSite(unittest.TestCase):
         self.assertTrue((DOCS / "menu/bresaola-arugula/index.html").exists())
 
     # ── truth ──
-    def test_sample_location_has_no_street_number(self):
-        """The sample location is cross streets only: no house number or postal code anywhere."""
-        files = list(DOCS.rglob("*.html")) + [DOCS / "llms.txt"]
-        for f in files:
-            text = f.read_text(encoding="utf-8")
-            self.assertIsNone(re.search(r"\b\d{1,5}\s+(Commercial|Kitchener)\b", text), f)
-            self.assertIsNone(re.search(r"\bV\d[A-Z] ?\d[A-Z]\d\b", text), f)
-        self.assertNotRegex(self.site["contact"]["maps_url"], r"query=\d")
-        self.assertIn("google.com/maps/search/", self.site["contact"]["maps_url"])
+    def test_richmond_address(self):
+        """The owner's address: 12420 No. 1 Road, Richmond. No page places the restaurant anywhere else."""
+        c = self.site["contact"]
+        self.assertEqual(c["address"], "12420 No. 1 Road, Richmond, BC V7E 6N2")
+        self.assertEqual((c["street_address"], c["postal_code"], c["city"], c["region"]),
+                         ("12420 No. 1 Road", "V7E 6N2", "Richmond", "BC"))
+        contact = self.read("contact/index.html")
+        main = plain(re.search(r"<main.*?</main>", contact, re.S).group(0))
+        self.assertIn(f'<h2 class="ct__where d">{html.escape(c["map_label"])}</h2>', main)
+        self.assertIn(f'<p class="ct__addr">{html.escape(c["locality"])}', main)
+        self.assertIn("12420 No. 1 Road", main)
+        self.assertIn("Richmond, BC V7E 6N2", main)
+        self.assertIn("Free customer parking inside the building, on the ground floor.", main)
+        home = self.read("index.html")
+        tag = re.search(r'<p class="tag">.*?</p>', home, re.S).group(0)
+        self.assertIn("· Richmond</span>", tag, "the hero gives the city; the band and Contact give the street")
+        self.assertIn(f'<h2 class="hb__h d">{html.escape(c["map_label"])}</h2>', plain(home))
+        for p in self.pages:
+            foot = re.search(r"<footer.*?</footer>", p.read_text(), re.S).group(0)
+            self.assertIn('<li class="foot__addr">12420 No.&nbsp;1 Road<br>Richmond, BC V7E&nbsp;6N2</li>', foot, p)
+            self.assertIn("info@<wbr><span class=\"nw\">dough-vinci.com</span>", foot, f"{p}: the email breaks only after @")
+            self.assertIn("Dough-Vinci, Richmond</p>", foot, f"{p}: the mirrored line")
+        self.assertIn(c["address"], self.read("llms.txt"))
+        self.assertIn("google.com/maps/search/", c["maps_url"])
+        self.assertIn("query=12420+No.+1+Road", c["maps_url"])
+        for f in [f for f in DOCS.rglob("*") if f.is_file() and f.suffix in TEXT_FILES]:
+            text = f.read_text(encoding="utf-8").replace("America/Vancouver", "")
+            self.assertIsNone(re.search(r"Commercial|Kitchener|Grandview|Vancouver", text), f)
+        faq = {q["q"]: q["a"] for q in self.site["faq"]}
+        self.assertIn("parking", " ".join(faq).lower())
+        self.assertIn("Is there parking?", contact)
+
+    def test_hours_as_confirmed(self):
+        self.assertEqual(self.site["hours"], [
+            {"days": ["mon", "tue", "wed", "thu", "fri", "sat"], "open": "11:00", "close": "22:00"},
+            {"days": ["sun"], "open": "12:00", "close": "20:00"}])
+        contact = self.read("contact/index.html")
+        table = re.search(r'<table class="hours">.*?</table>', contact, re.S).group(0)
+        self.assertRegex(table, r'data-days="sun"><th scope="row">Sun<span[^>]*> · today</span></th><td>12 pm – 8 pm</td>')
+        self.assertRegex(table, r'data-days="mon tue wed thu fri sat"><th scope="row">Mon–Sat<span[^>]*> · today</span></th>'
+                                r'<td>11 am – 10 pm</td>')
+        self.assertIn("Pacific time", table)
+        self.assertIn("Sun 12 pm–8 pm", self.read("llms.txt"))
+
+    def test_dine_in(self):
+        contact = self.read("contact/index.html")
+        self.assertIn("Can I eat in?", contact)
+        self.assertIn(html.escape(self.site["contact"]["dine_in"]), contact)
+        for p in self.pages:
+            sheet = re.search(r'<dialog class="sheet sheet--order".*?</dialog>', p.read_text(), re.S).group(0)
+            self.assertIn('<p class="os__lbl">Eat in</p>', sheet, p)
+        self.assertIn("Eat in", self.site["order_note"])
+
+    def test_sample_tags_only_on_sample_fields(self):
+        """Every «Sample» label and every list of samples follows `confirmed` in site.json."""
+        conf = self.site["confirmed"]
+        for f, v in {"location": True, "hours": True, "email": True, "halal": True, "opening_date": False,
+                     "phone": False}.items():
+            self.assertEqual(conf.get(f), v, f)
+        if not self.site.get("preview"):
+            self.assertFalse(any('class="smp"' in p.read_text() for p in self.pages))
+            return
+        allowed = {"Sample", "Sample phone", "Sample date", "Sample menu"}
+        for p in self.pages:
+            tags = set(re.findall(r'<span class="smp">([^<]*)</span>', p.read_text()))
+            self.assertLessEqual(tags, allowed, p)
+        contact = self.read("contact/index.html")
+        self.assertIn('id="hours">Hours </h2>', contact, "the hours carry no Sample label")
+        self.assertRegex(contact, r'<p class="ct__addr">[^<]*</p>', "the address carries no Sample label")
+        self.assertRegex(contact, r'mailto:[^"]+">.*?</span></a></li>', "the email carries no Sample label")
+        self.assertRegex(contact, r'Call \(604\) 555-0142</span><span class="smp">Sample</span></a>',
+                         "the phone's Sample label sits inside the Call button")
+        self.assertIn('<span class="smp">Sample date</span>', contact)
+        self.assertNotIn("Sample details", contact)
+        home = self.read("index.html")
+        band = re.search(r'<section class="hb hb--home".*?</section>', home, re.S).group(0)
+        self.assertNotIn("Sample location", band)
+        self.assertIn('<span class="smp">Sample date</span>', band)
+        lists = {
+            "header": re.search(r'<span class="pv__more">([^<]*)</span>', home).group(1),
+            "footer": re.search(r'<div class="foot__fine">\s*<p>(.*?)Photos:', home, re.S).group(1),
+            "about": re.search(r'<p class="ab__sample">(.*?)</p>', self.read("about/index.html"), re.S).group(1),
+            "llms": self.read("llms.txt").split("\n\n")[2],
+        }
+        for where, text in lists.items():
+            low = text.lower()
+            for word in ("menu", "phone"):
+                self.assertIn(word, low, f"{where}: {word} is still a sample")
+            self.assertTrue("date" in low or "opening day" in low, where)
+            if where != "about":
+                for word in ("location", "hours", "email", "halal", "place"):
+                    self.assertNotIn(word, low, f"{where}: {word} is confirmed")
+        self.assertIn("The location, hours, email address and halal statement are confirmed", lists["about"])
 
     def test_samples_are_marked(self):
         if not self.site.get("preview"):
             return
         self.assertIn("Sample menu", self.read("menu/index.html"))
         self.assertIn("Sample data, not for dietary decisions", self.read("allergens/index.html"))
-        self.assertIn('<span class="smp">Sample location, phone and hours</span>', self.read("contact/index.html"))
-        self.assertIn('<span class="smp">Sample location and hours</span>', self.read("index.html"))
+        self.assertIn('Call (604) 555-0142</span><span class="smp">Sample</span>', self.read("contact/index.html"))
+        self.assertIn('<span class="smp">Sample date</span>', self.read("index.html"))
         for it in self.dishes:
             self.assertIn("Sample menu: the price, calories and allergens are placeholders",
                           self.read(f"menu/{it['id']}/index.html"), it["id"])
@@ -401,6 +498,66 @@ class BuiltSite(unittest.TestCase):
         self.assertLess(len(words), 150, " ".join(words))
 
     # ── menu ──
+    def test_pasta_category(self):
+        cats = [c["id"] for c in self.menu["categories"]]
+        self.assertEqual(cats[cats.index("smash") + 1], "pasta", "Pasta comes right after the smashburgers")
+        pasta = next(c for c in self.menu["categories"] if c["id"] == "pasta")
+        self.assertEqual([i["name"] for i in pasta["items"]],
+                         ["Spaghetti Pomodoro", "Penne Arrabbiata", "Beef Bolognese", "Fettuccine Alfredo"])
+        diets = {i["id"]: set(i["diet"]) for i in pasta["items"]}
+        self.assertIn("vegetarian", diets["spaghetti-pomodoro"])
+        self.assertTrue({"vegan", "spicy"} <= diets["penne-arrabbiata"])
+        self.assertIn("vegetarian", diets["fettuccine-alfredo"])
+        self.assertNotIn("vegetarian", diets["beef-bolognese"])
+        self.assertIn("halal beef", " ".join(next(i for i in pasta["items"] if i["id"] == "beef-bolognese")["ingredients"]))
+        for it in pasta["items"]:
+            self.assertTrue({"short", "ingredients", "allergens", "may_contain", "diet", "kcal", "portion", "nutrition",
+                             "prices"} <= set(it), it["id"])
+            self.assertIn(it["id"], self.photos["no_photo"], "text-only")
+            self.assertIn("wheat", it["allergens"])
+            for ing in it["ingredients"]:
+                if re.search(r"grana|parmesan|cheese", ing):
+                    self.assertIn("microbial rennet", ing, it["id"])
+            n = it["nutrition"]
+            est = 4 * n["protein_g"] + 4 * n["carbs_g"] + 9 * n["fat_g"]
+            self.assertLess(abs(est - it["kcal"]) / it["kcal"], 0.08, f"{it['id']}: kcal agrees with its macros")
+        self.assertTrue(self.menu["sample"])
+        menu_html = self.read("menu/index.html")
+        sec = re.search(r'<section class="cat" id="pasta".*?</section>', menu_html, re.S).group(0)
+        self.assertEqual(len(re.findall(r'<li class="row"', sec)), 4)
+        self.assertNotIn("images.unsplash.com", sec, "the Pasta section is text-only")
+        self.assertIn('<a href="#pasta" data-tab="pasta">Pasta</a>', menu_html)
+        self.assertLess(menu_html.index('id="smash"'), menu_html.index('id="pasta"'))
+        self.assertLess(menu_html.index('id="pasta"'), menu_html.index('id="sides"'))
+
+    def test_line_breaks_that_read_well(self):
+        """Markup that keeps text whole where a break would read badly at some width."""
+        menu = self.read("menu/index.html")
+        self.assertIn('<span class="sep" aria-hidden="true">&nbsp;· </span>', menu, "a menu line never starts with ·")
+        self.assertNotIn('<span class="sep" aria-hidden="true"> · </span>', menu)
+        home = self.read("index.html")
+        tag = re.search(r'<p class="tag">.*?</p>', home, re.S).group(0)
+        self.assertRegex(tag, r'<span class="tag__g"><span class="tag__t">[^<]*</span><span class="smp">Sample date</span></span>',
+                         "the Sample date label wraps with the date, never alone")
+        self.assertIn('<div class="foot__find">', home)
+        contact = self.read("contact/index.html")
+        band = re.search(r'<section class="hb".*?</section>', contact, re.S).group(0)
+        self.assertIn('<div class="hb__info"><p class="hb__cert">', band, "the certification fills the band's third column")
+
+    def test_headline(self):
+        self.assertEqual(self.site["hero"]["title_lines"], ["Real Pizza.", "Real Smash Burger."])
+        home = self.read("index.html")
+        h1 = re.search(r'<h1 class="hero__h d" id="hero-title">(.*?)</h1>', home, re.S).group(1)
+        self.assertEqual(h1, "<span>Real Pizza.</span> <span>Real Smash Burger.</span>")
+        self.assertIn("<title>Dough-Vinci Pizza &amp; Burger — Real Pizza. Real Smash Burger.</title>", home)
+        self.assertIn("Real Pizza. Real Smash Burger. Made with Passion.", home)
+        for f in [f for f in DOCS.rglob("*") if f.is_file() and f.suffix in TEXT_FILES]:
+            self.assertNotIn("Real Smashburgers", f.read_text(encoding="utf-8"), f)
+        self.assertIn("Signature Smashburgers", home, "the owner's pillar keeps its word")
+        self.assertIn('<span class="d">Smashburgers</span>', home, "the category keeps its name")
+        self.assertEqual(self.site["name"], "Dough-Vinci")
+        self.assertEqual(self.site["subtitle"], "Pizza & Burger")
+
     def test_dish_photos_match_their_dishes(self):
         menu_html = self.read("menu/index.html")
         for cat in self.menu["categories"]:
@@ -493,9 +650,29 @@ class BuiltSite(unittest.TestCase):
         home = self.read("index.html")
         if od and self.b.TODAY.isoformat() < od:
             self.assertIn('data-state="soon"', home)
-            self.assertRegex(home, r'data-status="short"[^>]*>Opening [A-Z][a-z]{2} \d{1,2}<')
+            if self.site.get("opening_approx"):
+                self.assertRegex(home, r'data-status="short"[^>]*>Opening (early |mid-|late )[A-Z][a-z]{2}<')
+                self.assertRegex(home, r'data-status="long"[^>]*>Opening (early |mid-|late )[A-Z][a-z]+<')
+            else:
+                self.assertRegex(home, r'data-status="short"[^>]*>Opening [A-Z][a-z]{2} \d{1,2}<')
         if self.site.get("preview"):
-            self.assertNotIn("Open now", home, "no open-now claim while the hours are samples")
+            self.assertNotIn("Open now", home, "no open-now claim before the opening")
+
+    def test_approximate_opening_has_no_day(self):
+        """«around Dec 1st»: the site says early December and never a weekday or a day number with it."""
+        self.assertEqual(self.site["opening_date"], "2026-12-01")
+        self.assertTrue(self.site["opening_approx"])
+        if self.b.TODAY.isoformat() >= self.site["opening_date"]:
+            return
+        self.assertIn("Opening early December", self.read("index.html"))
+        self.assertIn("Opening early Dec<", self.read("index.html"))
+        self.assertIn("We plan to open in early December 2026.", self.read("contact/index.html"))
+        for f in [f for f in DOCS.rglob("*") if f.is_file() and f.suffix in TEXT_FILES]:
+            text = re.sub(r"<[^>]+>", " ", html.unescape(f.read_text(encoding="utf-8")))
+            self.assertIsNone(re.search(r"\b(Dec|December) \d{1,2}(st|nd|rd|th)?\b", text), f)
+            self.assertIsNone(re.search(WEEKDAY + r",? (early |mid-|late )?(Dec|December)\b", text), f)
+            self.assertNotIn("2026-12-01", text.replace('"opening":"2026-12-01"', ""), f)
+        self.assertIn('"approx":true', self.read("index.html"))
 
     # ── images and performance ──
     def test_images(self):
@@ -545,10 +722,18 @@ class BuiltSite(unittest.TestCase):
                 if self.menu.get("sample"):
                     self.assertNotIn("hasMenu", ld)
                     self.assertNotIn("Menu", raw, p)
-                if self.site.get("preview"):
-                    for k in ("telephone", "openingHoursSpecification", "priceRange"):
-                        self.assertNotIn(k, ld, p)
-                    self.assertNotIn("streetAddress", ld["address"], p)
+                conf = self.site.get("confirmed", {}) if self.site.get("preview") else None
+                if conf is not None:
+                    self.assertEqual("telephone" in ld, bool(conf.get("phone")), p)
+                    self.assertEqual("openingHoursSpecification" in ld, bool(conf.get("hours")), p)
+                    self.assertEqual("streetAddress" in ld["address"], bool(conf.get("location")), p)
+                    self.assertNotIn("priceRange", ld, p)
+                if "streetAddress" in ld["address"]:
+                    self.assertEqual(ld["address"]["streetAddress"], "12420 No. 1 Road")
+                    self.assertEqual(ld["address"]["postalCode"], "V7E 6N2")
+                self.assertEqual(ld["address"]["addressLocality"], "Richmond")
+                self.assertEqual(ld["slogan"], "Real Pizza. Real Smash Burger. Made with Passion.")
+                self.assertIn("Pasta", ld["servesCuisine"])
                 found += 1
         self.assertGreaterEqual(found, 1)
 
@@ -576,8 +761,15 @@ class BuiltSite(unittest.TestCase):
         llms = self.read("llms.txt")
         self.assertIn(self.site["name"], llms)
         if self.site.get("preview"):
-            for sample in (self.site["contact"]["phone"], self.site["contact"]["address"], "kcal", "$"):
-                self.assertNotIn(sample, llms, "no sample datum in llms.txt while the preview is on")
+            conf = self.site["confirmed"]
+            for field, value in (("phone", self.site["contact"]["phone"]), ("location", self.site["contact"]["address"]),
+                                 ("email", self.site["contact"]["email"])):
+                if conf.get(field):
+                    self.assertIn(value, llms, field)
+                else:
+                    self.assertNotIn(value, llms, f"no sample datum in llms.txt: {field}")
+            for sample in ("kcal", "$"):
+                self.assertNotIn(sample, llms, "no sample menu datum in llms.txt while the menu is a sample")
             self.assertIn("preview", llms)
         for name, (w, h) in (("og.png", (1200, 630)), ("apple-touch-icon.png", (180, 180)), ("favicon.png", (64, 64))):
             self.assertEqual((DOCS / name).read_bytes()[16:24], w.to_bytes(4, "big") + h.to_bytes(4, "big"), name)
